@@ -1,0 +1,1023 @@
+import os
+from itertools import product
+from os.path import dirname, normpath, relpath
+from os.path import join as path_join
+from shlex import quote as shell_quote
+
+from nestly import Nest
+from nestly.scons import SConsWrap
+from SCons.Script import File, Import
+
+Import("env")
+localenv = env.Clone()
+
+USE_SLURM = env["use_slurm"]
+
+COMPUTE_PROXY = os.environ.get("COMPUTE_PROXY", "")
+PROXY_ENV = (" ".join(f"{v}={COMPUTE_PROXY}"
+                      for v in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"))
+             if COMPUTE_PROXY else "")
+
+
+def _run_cmd(cmd_parts, n_cpus=2, mem="5G", use_slurm=USE_SLURM):
+    full = " ".join(str(x) for x in cmd_parts)
+    if use_slurm:
+        full = (f"srun --nodes=1 --ntasks=1 --cpus-per-task={n_cpus} "
+                f"--mem-per-cpu={mem} --time=72:00:00 env {PROXY_ENV} {full}")
+    return full
+
+TORCH_MEM = "8G"
+
+OUTDIR = "_output"
+
+PROMPT_KEYPHRASE_FILE         = "exp_cebab/prompts/keyphrases.txt"
+PROMPT_BERTOPIC_ITER_FILE     = "exp_cebab/prompts/proposer_bertopic_iter.txt"
+PROMPT_BERTOPIC_INIT_FILE     = "exp_cebab/prompts/proposer_bertopic_init.txt"
+PROMPT_ANNOTATOR_FILE         = "exp_cebab/prompts/annotator.txt"
+PROMPT_SOURCES = ["prompts/keyphrases.txt",
+                  "prompts/proposer_bertopic_iter.txt", "prompts/proposer_bertopic_init.txt",
+                  "prompts/annotator.txt"]
+LLM_MODELS = ["azure/gpt-4.1-mini-2025-04-14"]
+LLM_BATCH_SIZE = 50
+
+POPULATION_CSV  = "data/population.csv"
+POPULATION_EMB  = "data/population_embeddings.npz"
+
+BETA_DICT = {
+    "ambiance_mentioned": {
+        "beta_pre": 0,
+        "beta0_pre": 0,
+        "beta_post": 4,
+        "beta0_post": -4,
+    },
+}
+
+SIDE_FRACS   = [0.2, 0.55, 0.25]
+EMBED_MODEL     = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_LOCAL_ONLY = True
+
+N_NULL_SEEDS      = 0
+N_SEEDS           = 2
+SEED_CAPS = {}
+HISTORY_SAMPLE_SIZES = {
+    "oracle_random_pool": [None, 25, 50, 100, 200],
+    "bertopic_llm": [None]
+}
+
+SHIFT_SEED_OFFSET = 10000
+PRE_P1_FRACTION   = 0.0
+POST_P1_FRACTIONS = [
+    1.0
+    ]
+N_PRE             = 50
+N_POST            = 300
+NULL_LEN          = N_PRE + N_POST
+SHIFT_LEN         = N_PRE + N_POST
+K_CALIB           = 30
+
+MAX_STEPS_NULL       = NULL_LEN
+MAX_STEPS_SHIFT      = SHIFT_LEN
+
+N_BURN_IN      = 30
+CANDIDATE_STEP = 1
+LAM            = 0.5
+ALPHA          = 0.05
+N_BOOTSTRAP    = 1000
+MAX_CENSOR_RATE = 0.10
+SAVE_MATRIX_SNAPSHOTS = True
+
+MAX_M_STATISTIC = max(NULL_LEN, SHIFT_LEN)
+THRESHOLD_MIN  = N_PRE - N_BURN_IN + 1
+THRESHOLD_MAX  = MAX_M_STATISTIC
+N_THRESHOLDS   = int((THRESHOLD_MAX - THRESHOLD_MIN) / 5 + 1)
+
+MIN_BLOCK      = 10
+N_DIRS         = 50
+SW_P           = 2
+
+CHANGEPOINT_LEARNER_NAMES = [
+    "mean_shift",
+    ]
+CHANGEPOINT_FEATURE_DICT = {
+    "identity": ["embedding"],
+    "sae":  ["concept"],
+    "sae_online": ["concept"],
+    "oracle_true": ["concept"],
+    "oracle_all8": ["concept"],
+    "oracle_random_pool": ["concept"],
+    "bertopic_llm": ["concept"],
+}
+
+CONCEPT_LEARNER_TYPES = [
+    "bertopic_llm",
+]
+LLM_LEARNER_TYPES = ["bertopic_llm"]
+CONCEPT_TYPES = LLM_LEARNER_TYPES + ["oracle_random_pool"]
+N_INIT_CONCEPTS           = 4
+N_NEW_CONCEPTS_PER_UPDATE = 2
+LLM_N_NEW_CONCEPTS        = 2
+
+N_BERTOPIC_TOPICS = 25
+
+SAE_M = 32
+SAE_K = 3
+SAE_REFIT_EVERY  = 1
+SAE_REFIT_EPOCHS = 5
+
+ALL8_CONCEPT_COLS = ["food_mentioned", "food_negative",
+                     "ambiance_mentioned", "ambiance_negative",
+                     "service_mentioned", "service_negative",
+                     "noise_mentioned", "noise_negative"]
+ORACLE_RANDOM_POOL_N_NOISE_INDEPENDENT = 2
+ORACLE_RANDOM_POOL_N_NOISE_CORRELATED  = 2
+ORACLE_RANDOM_POOL_NOISE_P             = 0.3
+ORACLE_RANDOM_POOL_FLIP_RATE           = 0.3
+ORACLE_RANDOM_POOL_NOISE_COLS = (
+    [f"noise_ind_{i}" for i in range(ORACLE_RANDOM_POOL_N_NOISE_INDEPENDENT)]
+    + [f"noise_corr_{i}" for i in range(ORACLE_RANDOM_POOL_N_NOISE_CORRELATED)]
+)
+ORACLE_CONCEPT_SETS = {
+    "oracle_all8": ALL8_CONCEPT_COLS,
+    "oracle_random_pool": ALL8_CONCEPT_COLS + ORACLE_RANDOM_POOL_NOISE_COLS,
+}
+
+
+def _oracle_concept_cols(concept_learner_type, shift_aspect):
+    if concept_learner_type == "oracle_true":
+        return [shift_aspect]
+    return ORACLE_CONCEPT_SETS[concept_learner_type]
+
+SCL_VARIANT = "subset_scan"
+
+
+CLASSIFIERS        = [
+    "logistic",
+]
+MAX_UNPENALIZED_DIM = 10
+CLASSIFIER_CV      = False
+CV_FOLDS           = 3
+CV_N_CS            = 10
+
+
+REAL_QUERY_BUDGET_CEILING = 500
+
+CTM_SCORERS = [
+    "cosine_centroid",
+    "guided"
+]
+CTM_N_REFERENCE = K_CALIB // 2
+CTM_JUMP_RATES = "0.01"
+def _ctm_direction_files(shift_aspect):
+    return {
+        "text-oracle":    f"prompts/drift_directions_oracle_{shift_aspect}.json",
+        "text-unrelated": f"prompts/drift_directions_unrelated_{shift_aspect}.json",
+    }
+CTM_POOL_VARIANT = "embedding-oracle"
+
+THRESHOLD_MAX_PLOT = THRESHOLD_MAX
+THRESHOLD_MAX_PLOT_NULL = MAX_STEPS_NULL - N_BURN_IN
+PLOT_COST_LEVELS = {
+    "default": [],
+}
+PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
+                 "oracle_variant", "sae_variant", "variant", "search_all_sizes",
+                 "llm_model", "history_sample_size"]
+
+
+def _mirror_outdir(outdir, subdir):
+    return (outdir if subdir is None
+            else normpath(path_join(OUTDIR, subdir, relpath(outdir, OUTDIR))))
+
+
+def _seed_class(cap, n_seeds):
+    limits = [x for x in (cap, n_seeds) if x is not None]
+    return "*" if not limits else f"[0-{min(limits) - 1}]"
+
+
+def _capped_run_seeds(c):
+    caps = SEED_CAPS.get(c["concept_learner_type"])
+    if caps is None:
+        return list(c["seed_dict"])
+    keep = []
+    for key in c["seed_dict"]:
+        kind = "null" if key.startswith("null_") else "shift"
+        if int(key.rsplit("_", 1)[1]) < caps[kind]:
+            keep.append(key)
+    return keep
+
+
+def _monitor_seed(run_seed_key):
+    assert run_seed_key.startswith(("null_", "shift_")), (
+        f"unknown stream family: {run_seed_key}"
+    )
+    stream_idx = int(run_seed_key.rsplit("_", 1)[1])
+    return stream_idx if run_seed_key.startswith("null_") else SHIFT_SEED_OFFSET + stream_idx
+
+
+nest = SConsWrap(Nest(), OUTDIR, alias_environment=localenv)
+
+if not (File(POPULATION_CSV).exists() and File(POPULATION_EMB).exists()):
+    @nest.add_target_with_env(localenv)
+    def build_population(env, outdir, c):
+        targets = [POPULATION_CSV, POPULATION_EMB, "data/population.log"]
+        cmd = [
+            "python", "src/assemble_cebab_population.py",
+            "--out-population-csv", "${TARGETS[0]}",
+            "--out-embeddings-npz", "${TARGETS[1]}",
+            "--log",                "${TARGETS[2]}",
+        ]
+        return env.Command(targets, [], " ".join(map(str, cmd)))
+
+nest.add("shift_aspect",
+    [
+        "ambiance_mentioned",
+    ]
+)
+
+nest.add_aggregate("cell_summaries", list)
+nest.add_aggregate("ctm_cell_summaries", list)
+
+@nest.add_target_with_env(localenv)
+def assemble_pools(env, outdir, c):
+    sources = [POPULATION_CSV, POPULATION_EMB]
+    targets = [
+        path_join(outdir, "p0_pool.csv"),
+        path_join(outdir, "p1_pool.csv"),
+        path_join(outdir, "embeddings.npz"),
+        path_join(outdir, "mapping.csv"),
+        path_join(outdir, "sae_pool.csv"),
+        path_join(outdir, "sae_train_embeddings.npz"),
+        path_join(outdir, "true_concepts.json"),
+        path_join(outdir, "data/assemble.log"),
+    ]
+    cmd = [
+        "python", "src/assemble_cebab.py",
+        "--seed",         0,
+        "--shift-aspect", c["shift_aspect"],
+        "--beta-pre",         BETA_DICT[c["shift_aspect"]]["beta_pre"],
+        "--beta-post",         BETA_DICT[c["shift_aspect"]]["beta_post"],
+        "--beta0-pre",         BETA_DICT[c["shift_aspect"]]["beta0_pre"],
+        "--beta0-post",         BETA_DICT[c["shift_aspect"]]["beta0_post"],
+        "--side-fracs",   *SIDE_FRACS,
+        "--population-csv",            "${SOURCES[0]}",
+        "--population-embeddings-npz", "${SOURCES[1]}",
+        "--p0-pool-path",        "${TARGETS[0]}",
+        "--p1-pool-path",        "${TARGETS[1]}",
+        "--embeddings-path",     "${TARGETS[2]}",
+        "--mapping-path",        "${TARGETS[3]}",
+        "--sae-pool-path",       "${TARGETS[4]}",
+        "--sae-embeddings-path", "${TARGETS[5]}",
+        "--true-concepts-path",  "${TARGETS[6]}",
+        "--log",                 "${TARGETS[7]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def augment_oracle_random_pool(env, outdir, c):
+    sources = c["assemble_pools"][:2]
+    targets = [
+        path_join(outdir, "oracle_random_pool", "p0_pool_aug.csv"),
+        path_join(outdir, "oracle_random_pool", "p1_pool_aug.csv"),
+        path_join(outdir, "oracle_random_pool", "augment.log"),
+    ]
+    cmd = [
+        "python", "src/augment_oracle_pool.py",
+        "--pool-csvs",     "${SOURCES[0]}", "${SOURCES[1]}",
+        "--out-csvs",      "${TARGETS[0]}", "${TARGETS[1]}",
+        "--n-independent", ORACLE_RANDOM_POOL_N_NOISE_INDEPENDENT,
+        "--noise-p",       ORACLE_RANDOM_POOL_NOISE_P,
+        "--n-correlated",  ORACLE_RANDOM_POOL_N_NOISE_CORRELATED,
+        "--true-col",      *_oracle_concept_cols("oracle_true", c["shift_aspect"]),
+        "--zero-fill-cols", *ALL8_CONCEPT_COLS,
+        "--flip-rate",     ORACLE_RANDOM_POOL_FLIP_RATE,
+        "--seed",          12345,
+        "--log",           "${TARGETS[2]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+def _is_sae(c):
+    return c["concept_learner_type"].startswith("sae")
+
+
+if any(t.startswith("sae") for t in CONCEPT_LEARNER_TYPES):
+    @nest.add_target_with_env(localenv)
+    def train_sae(env, outdir, c):
+        sources = [c["assemble_pools"][5]]
+        targets = [
+            path_join(outdir, "sae", f"SAE_M={SAE_M}_K={SAE_K}.pt"),
+            path_join(outdir, "sae", "sae_settings.json"),
+        ]
+        cmd = [
+            "python", "src/train_sae.py",
+            "--embeddings-path", "${SOURCES[0]}",
+            "--checkpoint-dir",  path_join("exp_cebab", outdir, "sae"),
+            "--M", SAE_M,
+            "--K", SAE_K,
+        ]
+        return env.Command(targets, sources, _run_cmd(cmd, use_slurm=True))
+
+
+@nest.add_target_with_env(localenv)
+def write_text_direction(env, outdir, c):
+    nodes = {}
+    for variant, descriptions_json in _ctm_direction_files(c["shift_aspect"]).items():
+        targets = [
+            path_join(outdir, f"directions_{variant}.npz"),
+            path_join(outdir, f"directions_{variant}.log"),
+        ]
+        cmd = [
+            "python", "src/write_text_direction.py",
+            "--descriptions-json", "${SOURCES[0]}",
+            "--embed-model",       EMBED_MODEL,
+            "--out",               "${TARGETS[0]}",
+            "--log",               "${TARGETS[1]}",
+        ]
+        if EMBED_LOCAL_ONLY:
+            cmd.append("--local-files-only")
+        nodes[variant] = env.Command(targets, [descriptions_json],
+                                     _run_cmd(cmd, mem=TORCH_MEM, use_slurm=False))
+    return nodes
+
+@nest.add_target_with_env(localenv)
+def write_pool_direction(env, outdir, c):
+    sources = [
+        c["assemble_pools"][2],
+        c["assemble_pools"][3]
+    ]
+    targets = [
+        path_join(outdir, f"directions_{CTM_POOL_VARIANT}.npz"),
+        path_join(outdir, f"directions_{CTM_POOL_VARIANT}.log"),
+    ]
+    cmd = [
+        "python", "src/write_pool_direction.py",
+        "--embeddings-path", "${SOURCES[0]}",
+        "--mapping-csv",     "${SOURCES[1]}",
+        "--label",           f"{c['shift_aspect']}_pool",
+        "--out",             "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.add_aggregate("seed_dict", dict)
+nest.add_aggregate("bertopic_llm_debug_csvs", dict)
+nest.add_aggregate("identity_debug_csvs", dict)
+
+nest.add("null_seed", range(N_NULL_SEEDS), label_func=lambda c: f"null/seed_{c}")
+@nest.add_target_with_env(localenv)
+def create_null_data_stream(env, outdir, c):
+    sources = [
+        c["assemble_pools"][2],
+        c["assemble_pools"][3]
+    ]
+    targets = [
+        path_join(outdir, "stream.csv"),
+        path_join(outdir, "stream.log"),
+        path_join(outdir, "stream_metadata.json"),
+    ]
+    cmd = [
+        "python", "src/make_data_stream.py",
+        "--seed",            c["null_seed"],
+        "--pre-p1-fraction", PRE_P1_FRACTION,
+        "--n-controls",      K_CALIB,
+        "--n-pre",           NULL_LEN,
+        "--n-post",          0,
+        "--embeddings-path", "${SOURCES[0]}",
+        "--mapping-path",    "${SOURCES[1]}",
+        "--out-stream-csv",  "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+        "--out-metadata",    "${TARGETS[2]}",
+    ]
+    c["seed_dict"][f"null_{c['null_seed']}"] = targets[0]
+    return env.Command(targets, sources, _run_cmd(cmd))
+
+nest.pop('null_seed')
+
+
+nest.add_aggregate("metadata_list", list)
+nest.add("post_p1_fraction", POST_P1_FRACTIONS, label_func=lambda c: f"post_p1_{c}")
+nest.add(
+    "seed",
+    range(N_SEEDS),
+    label_func=lambda c: f"seed_{c}")
+
+
+@nest.add_target_with_env(localenv)
+def create_shift_data_stream(env, outdir, c):
+    sources = [
+        c["assemble_pools"][2],
+        c["assemble_pools"][3]
+    ]
+    targets = [
+        path_join(outdir, "stream.csv"),
+        path_join(outdir, "stream.log"),
+        path_join(outdir, "stream_metadata.json"),
+    ]
+    cmd = [
+        "python", "src/make_data_stream.py",
+        "--seed",             SHIFT_SEED_OFFSET + c["seed"],
+        "--pre-p1-fraction",  PRE_P1_FRACTION,
+        "--post-p1-fraction", c['post_p1_fraction'],
+        "--n-pre",            N_PRE,
+        "--n-post",           N_POST,
+        "--n-controls",       K_CALIB,
+        "--embeddings-path",  "${SOURCES[0]}",
+        "--mapping-path",     "${SOURCES[1]}",
+        "--out-stream-csv",   "${TARGETS[0]}",
+        "--log",              "${TARGETS[1]}",
+        "--out-metadata",     "${TARGETS[2]}",
+    ]
+    c["seed_dict"][f"shift_{c['post_p1_fraction']}_seed_{c['seed']}"] = targets[0]
+    c["metadata_list"].append(targets[2])
+    return env.Command(targets, sources, _run_cmd(cmd))
+
+nest.pop('post_p1_fraction')
+
+nest.add("changepoint_learner", CHANGEPOINT_LEARNER_NAMES, label_func=lambda c: f"cl_{c}")
+nest.add("classifier", CLASSIFIERS, label_func=lambda c: f"clf_{c}")
+nest.add("concept_learner_type",
+         CONCEPT_LEARNER_TYPES,
+         label_func=lambda c: f"clt_{c}")
+nest.add("cp_feature_source",
+         lambda c: CHANGEPOINT_FEATURE_DICT[c["concept_learner_type"]],
+         label_func=lambda c: f"cpfeat_{c}")
+
+nest.add(
+    "single_concept",
+    [1],
+    label_func=lambda c: f"single_concept_{c}")
+
+nest.add(
+    "search_all_sizes",
+    lambda c: [False] if c["concept_learner_type"] == "identity" else [True],
+    label_func=lambda c: f"search_all_sz_{c}")
+
+nest.add(
+    "llm_model",
+    lambda c: LLM_MODELS if c["concept_learner_type"] in LLM_LEARNER_TYPES else ["none"],
+    label_func=lambda c: f"llm_{c.replace('/', '_').replace('.', '_')}")
+
+nest.add(
+    "history_sample_size",
+    lambda c: HISTORY_SAMPLE_SIZES.get(c["concept_learner_type"], [None]),
+    label_func=lambda c: "" if c is None else f"hss_{c}")
+
+@nest.add_target_with_env(localenv)
+def create_scl_config(env, outdir, c):
+    targets = [path_join(outdir, "scl_config.json")]
+    sources = []
+    n_init_concepts = (N_INIT_CONCEPTS if c["concept_learner_type"] in CONCEPT_TYPES else SAE_M if "sae" in c["concept_learner_type"] else 0)
+    n_new = (LLM_N_NEW_CONCEPTS
+             if c["concept_learner_type"] in CONCEPT_TYPES
+             else N_NEW_CONCEPTS_PER_UPDATE)
+    cmd = [
+        "python", "src/write_scl_config.py",
+        "--out",                       "${TARGETS[0]}",
+        "--concept-learner-type",
+        ("oracle" if c["concept_learner_type"].startswith("oracle")
+         else "sae" if _is_sae(c)
+         else c["concept_learner_type"]),
+        "--scl-variant",               SCL_VARIANT,
+        "--n-burn-in",                 N_BURN_IN,
+        "--seed",                      12345,
+        "--n-init-concepts",           n_init_concepts,
+        "--n-new-concepts-per-update", n_new,
+        "--real-query-budget-ceiling", REAL_QUERY_BUDGET_CEILING,
+        "--max-unpenalized-dim",       MAX_UNPENALIZED_DIM,
+        "--cv-folds",                  CV_FOLDS,
+        "--cv-n-cs",                   CV_N_CS,
+        "--cache-mode",                "per_stream",
+        "--classifier-type",          c["classifier"],
+    ]
+
+    if CLASSIFIER_CV:
+        cmd.append("--classifier-cv")
+
+    if c["search_all_sizes"]:
+        cmd.append("--search-all-sizes")
+
+    if c["history_sample_size"] is not None:
+        cmd += ["--history-sample-size", c["history_sample_size"]]
+
+    if _is_sae(c):
+        sources = [c["train_sae"][0], c["assemble_pools"][2], c["assemble_pools"][3]]
+        cmd += [
+            "--sae-checkpoint-path", "${SOURCES[0]}",
+            "--sae-embeddings-path", "${SOURCES[1]}",
+            "--sae-mapping-path",    "${SOURCES[2]}",
+        ]
+        if c["concept_learner_type"] == "sae_online":
+            sources.append(c["assemble_pools"][5])
+            cmd += [
+                "--sae-refit-every",         SAE_REFIT_EVERY,
+                "--sae-refit-epochs",        SAE_REFIT_EPOCHS,
+                "--sae-side-embeddings-path", "${SOURCES[3]}",
+            ]
+    elif c["concept_learner_type"].startswith("oracle"):
+        if c["concept_learner_type"] in ("oracle_random_pool", "oracle_all8"):
+            sources = [c["augment_oracle_random_pool"][0],
+                       c["augment_oracle_random_pool"][1]]
+        else:
+            sources = c["assemble_pools"][:2]
+        cmd += [
+            "--oracle-pool-csvs",    "${SOURCES[0]}", "${SOURCES[1]}",
+            "--oracle-concept-cols", *_oracle_concept_cols(c["concept_learner_type"], c["shift_aspect"]),
+            "--oracle-variant",      c["concept_learner_type"],
+        ]
+        if c["concept_learner_type"] == "oracle_random_pool":
+            cmd += [
+                "--oracle-proposal-mode",    "random_pool",
+                "--oracle-informative-cols", *_oracle_concept_cols("oracle_true", c["shift_aspect"]),
+            ]
+    elif c["concept_learner_type"] == "bertopic_llm":
+        cmd += [
+            "--llm-keyphrase-model", c["llm_model"],
+            "--prompt-keyphrase-file", PROMPT_KEYPHRASE_FILE,
+            "--keyphrase-batch-size", LLM_BATCH_SIZE,
+            "--llm-proposer-model", c["llm_model"],
+            "--prompt-proposer-iter-file", PROMPT_BERTOPIC_ITER_FILE,
+            "--prompt-proposer-init-file", PROMPT_BERTOPIC_INIT_FILE,
+            "--n-bertopic-topics", N_BERTOPIC_TOPICS,
+            "--llm-annotator-model", c["llm_model"],
+            "--prompt-annotator-file", PROMPT_ANNOTATOR_FILE,
+            "--annotator-batch-size", LLM_BATCH_SIZE,
+            "--single-concept-mode" if c["single_concept"] else "",
+        ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+nest.add_aggregate("result_pkls", list)
+nest.add("run_seed", _capped_run_seeds)
+
+@nest.add_target_with_env(localenv)
+def run_monitor(env, outdir, c):
+    sources = [
+        c["assemble_pools"][2],
+        c["seed_dict"][c["run_seed"]],
+        c["create_scl_config"][0],
+    ]
+    targets = [
+        path_join(outdir, "result_whiten.pkl"),
+        path_join(outdir, "run_whiten.log"),
+        path_join(outdir, "debug_whiten.csv"),
+        path_join(outdir, "concept_lifecycle_whiten.csv"),
+        path_join(outdir, "concept_episodes_whiten.csv"),
+    ]
+    cmd = [
+        "python", "src/run_monitor.py",
+        "--scl-config",          "${SOURCES[2]}",
+        "--changepoint-learner", c["changepoint_learner"],
+        "--cp-feature-source",   c["cp_feature_source"],
+        "--seed",                _monitor_seed(c["run_seed"]),
+        "--lam",                 LAM,
+        "--alpha",               ALPHA,
+        "--max-m-statistic",     MAX_M_STATISTIC if c["concept_learner_type"] == "bertopic_llm" else (MAX_M_STATISTIC * 3),
+        "--candidate-step",      CANDIDATE_STEP,
+        "--min-block",           MIN_BLOCK,
+        "--n-dirs",              N_DIRS,
+        "--p",                   SW_P,
+        "--embeddings-path",     "${SOURCES[0]}",
+        "--stream-csv",          "${SOURCES[1]}",
+        "--out",                 "${TARGETS[0]}",
+        "--log",                 "${TARGETS[1]}",
+        "--debug-csv",           "${TARGETS[2]}",
+        "--concept-lifecycle-csv", "${TARGETS[3]}",
+        "--concept-episodes-csv",  "${TARGETS[4]}",
+    ]
+    save_keyphrases = c["concept_learner_type"] in LLM_LEARNER_TYPES
+    if save_keyphrases:
+        targets.append(path_join(outdir, "keyphrase_outputs.csv"))
+        cmd += ["--keyphrase-csv ${TARGETS[5]}"]
+    
+    if c["concept_learner_type"] == "sae_online":
+        targets.append(path_join(outdir, "sae_final.pt"))
+        cmd += ["--sae-final-checkpoint", f"${{TARGETS[{len(targets) - 1}]}}"]
+
+    stream_cache = path_join(dirname(c["seed_dict"][c["run_seed"]]), "cache.db")
+    if c["concept_learner_type"] in LLM_LEARNER_TYPES:
+        sources = sources + PROMPT_SOURCES
+        cmd += ["--cache-file", path_join("exp_cebab", stream_cache)]
+
+    c["result_pkls"].append(targets[0])
+    if c["run_seed"].startswith("shift_"):
+        if c["concept_learner_type"] == "bertopic_llm":
+            c["bertopic_llm_debug_csvs"][c["run_seed"]] = targets[2]
+        elif c["concept_learner_type"] == "identity":
+            c["identity_debug_csvs"][c["run_seed"]] = targets[2]
+    result = env.Command(targets, sources, _run_cmd(cmd, n_cpus=2))
+    if c["concept_learner_type"] in LLM_LEARNER_TYPES:
+        env.SideEffect(stream_cache, result)
+    return result
+
+@nest.add_target_with_env(localenv)
+def plot_e_statistic(env, outdir, c):
+    sources = [c["run_monitor"][2]]
+    targets = [
+        path_join(outdir, "e_statistic.png"),
+        path_join(outdir, "plot_e_statistic.log"),
+    ]
+    if int(c["run_seed"].split("_")[-1]) < 2:
+        cmd = [
+            "python", "src/plot_e_statistic.py",
+            "--debug-csv", "${SOURCES[0]}",
+            "--fig-path",  "${TARGETS[0]}",
+            "--log",       "${TARGETS[1]}",
+        ]
+        return env.Command(targets, sources, _run_cmd(cmd))
+
+nest.pop("run_seed")
+
+@nest.add_target_with_env(localenv)
+def concept_prevalence(env, outdir, c):
+    if c["concept_learner_type"] != "bertopic_llm":
+        return None
+    caps = SEED_CAPS.get(c["concept_learner_type"])
+    shift_pat = f"seed_{_seed_class(caps and caps['shift'], None)}"
+    shift_res_globs = []
+    for pkl_path in c["result_pkls"]:
+        if "seed_0" in pkl_path and "null" not in pkl_path:
+            shift_res_globs.append(path_join("exp_cebab", pkl_path.replace("seed_0", shift_pat)))
+    if not shift_res_globs:
+        return None
+    sources = c["result_pkls"]
+    targets = [
+        path_join(outdir, "concept_prevalence.csv"),
+        path_join(outdir, "concept_prevalence.log"),
+    ]
+    cmd = [
+        "python", "src/aggregate_concept_prevalence.py",
+        "--result-glob", " ".join([f'"{gl}"' for gl in shift_res_globs]),
+        "--changepoint", N_PRE,
+        "--out-csv",     "${TARGETS[0]}",
+        "--log",         "${TARGETS[1]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def cell_summary(env, outdir, c):
+    caps = SEED_CAPS.get(c["concept_learner_type"])
+    skip_null = (N_NULL_SEEDS == 0) or (caps and caps["null"] == 0)
+    nodes = []
+    result_pkls = c["result_pkls"]
+    shift_pat = f"seed_{_seed_class(caps and caps['shift'], None)}"
+    null_metas, null_res_glob, null_dat_glob = [], None, None
+    if not skip_null:
+        null_class = _seed_class(caps and caps["null"], None)
+        null_pat = f"null_{null_class}"
+        null_meta_pat = f"{c['shift_aspect']}/null/seed_{null_class}"
+        null_metas = [c["seed_dict"][k].replace("stream.csv", "stream_metadata.json")
+                        for k in c["seed_dict"] if k.startswith("null_")]
+        null_dat_glob = path_join("exp_cebab", OUTDIR, null_meta_pat,
+                                    "stream_metadata.json")
+    sources = ([c["create_scl_config"][0]] + result_pkls + c["metadata_list"]
+                + null_metas)
+    shift_res_globs = []
+    for pkl_path in result_pkls:
+        if "null_0" in pkl_path:
+            null_res_glob = path_join("exp_cebab", pkl_path.replace("null_0", null_pat))
+        elif "seed_0" in pkl_path:
+            shift_res_globs.append(path_join("exp_cebab", pkl_path.replace("seed_0", shift_pat)))
+    shift_dat_globs = []
+    for metadata_path in c["metadata_list"]:
+        if "seed_0" in metadata_path:
+            shift_dat_globs.append(path_join("exp_cebab", metadata_path.replace("seed_0", shift_pat)))
+    targets = [
+        path_join(outdir, "summary.csv"),
+        path_join(outdir, "aggregate.log"),
+    ]
+    cmd = [
+        "python", "src/aggregate_cell.py",
+        "--shift-res-globs",        " ".join([f'"{gl}"' for gl in shift_res_globs]),
+        "--shift-dat-globs",        " ".join([f'"{gl}"' for gl in shift_dat_globs]),
+        "--label",                 c["shift_aspect"],
+        "--threshold-min",         THRESHOLD_MIN,
+        "--threshold-max",         THRESHOLD_MAX,
+        "--n-thresholds",          N_THRESHOLDS,
+        "--n-bootstrap",           N_BOOTSTRAP,
+        "--config-json",           "${SOURCES[0]}",
+        "--e-process",             "ProposedMethod",
+        "--changepoint-learner",   c["changepoint_learner"],
+        "--cp-feature-source",     c["cp_feature_source"],
+        "--k-calib",               K_CALIB,
+        "--out-csv",               "${TARGETS[0]}",
+        "--log",                   "${TARGETS[1]}",
+    ]
+    cmd += (["--skip-null"] if skip_null
+            else ["--null-res-glob", f'"{null_res_glob}"',
+                    "--null-dat-glob", f'"{null_dat_glob}"'])
+    c["cell_summaries"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("changepoint_learner")
+
+
+def _ensemble_seeds(c):
+    return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
+
+
+ENSEMBLE_COMBINE = {
+    "ensemble_m": "m_statistic"
+}
+nest.add("ensemble", list(ENSEMBLE_COMBINE), label_func=lambda c: c)
+
+
+@nest.add_target_with_env(localenv)
+def create_ensemble_config(env, outdir, c):
+    targets = [path_join(outdir, "ensemble_config.json")]
+    cmd = [
+        "python", "src/write_ensemble_config.py",
+        "--out",        "${TARGETS[0]}",
+        "--n-burn-in",  N_BURN_IN,
+        "--concept-learner-type", c["ensemble"],
+    ]
+    return env.Command(targets, [], _run_cmd(cmd, use_slurm=False))
+
+
+nest.add_aggregate("ensemble_result_pkls", list)
+nest.add("ensemble_seed", _ensemble_seeds, label_func=lambda c: c)
+
+
+@nest.add_target_with_env(localenv)
+def run_ensemble_monitor(env, outdir, c):
+    bertopic_debug = c["bertopic_llm_debug_csvs"][c["ensemble_seed"]]
+    identity_debug = c["identity_debug_csvs"][c["ensemble_seed"]]
+    sources = [bertopic_debug, identity_debug]
+    targets = [
+        path_join(outdir, "result.pkl"),
+        path_join(outdir, "run.log"),
+        path_join(outdir, "debug.csv"),
+    ]
+    cmd = [
+        "python", "src/run_ensemble_monitor.py",
+        "--debug-csv-1",     "${SOURCES[0]}",
+        "--debug-csv-2",     "${SOURCES[1]}",
+        "--combine",         ENSEMBLE_COMBINE[c["ensemble"]],
+        "--lam",             LAM,
+        "--max-m-statistic", MAX_M_STATISTIC,
+        "--stream-length",   SHIFT_LEN,
+        "--out-pkl",         "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+        "--out-debug-csv",   "${TARGETS[2]}",
+    ]
+    c["ensemble_result_pkls"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("ensemble_seed")
+
+
+@nest.add_target_with_env(localenv)
+def ensemble_cell_summary(env, outdir, c):
+    sources = [c["create_ensemble_config"][0]] + c["ensemble_result_pkls"]
+    shift_res_glob = path_join(
+        "exp_cebab", OUTDIR,
+        c["shift_aspect"],
+        c["ensemble"],
+        "shift_*_seed_*",
+        "result.pkl",
+    )
+    shift_dat_glob = path_join(
+        "exp_cebab", OUTDIR,
+        c["shift_aspect"],
+        "post_p1_*",
+        "seed_*",
+        "stream_metadata.json",
+    )
+    targets = [
+        path_join(outdir, "summary.csv"),
+        path_join(outdir, "aggregate.log"),
+    ]
+    cmd = [
+        "python", "src/aggregate_cell.py",
+        "--shift-res-globs",      f'"{shift_res_glob}"',
+        "--shift-dat-globs",      f'"{shift_dat_glob}"',
+        "--skip-null",
+        "--label",                c["shift_aspect"],
+        "--threshold-min",        THRESHOLD_MIN,
+        "--threshold-max",        THRESHOLD_MAX,
+        "--n-thresholds",         N_THRESHOLDS,
+        "--n-bootstrap",          N_BOOTSTRAP,
+        "--config-json",          "${SOURCES[0]}",
+        "--e-process",            "ProposedMethod",
+        "--changepoint-learner",  "mean_shift",
+        "--cp-feature-source",    "concept",
+        "--k-calib",              K_CALIB,
+        "--out-csv",              "${TARGETS[0]}",
+        "--log",                  "${TARGETS[1]}",
+    ]
+    c["cell_summaries"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("ensemble")
+
+
+nest.add("ctm_scorer", CTM_SCORERS, label_func=lambda c: f"ctm_{c}")
+nest.add("ctm_variant",
+         lambda c: list(_ctm_direction_files(c["shift_aspect"])) + [CTM_POOL_VARIANT]
+         if c["ctm_scorer"] == "guided" else ["none"],
+         label_func=lambda c: f"var_{c}")
+
+
+@nest.add_target_with_env(localenv)
+def create_ctm_config(env, outdir, c):
+    targets = [path_join(outdir, "ctm_config.json")]
+    sources = []
+    cmd = [
+        "python", "src/write_ctm_config.py",
+        "--out",          "${TARGETS[0]}",
+        "--scorer",       c["ctm_scorer"],
+        "--n-reference",  CTM_N_REFERENCE,
+        "--jump-rates",   CTM_JUMP_RATES,
+        "--alpha",        ALPHA,
+        "--n-burn-in",    N_BURN_IN,
+    ]
+    if c["ctm_scorer"] == "guided":
+        if c["ctm_variant"] == CTM_POOL_VARIANT:
+            sources = [c["write_pool_direction"][0]]
+        else:
+            sources = [c["write_text_direction"][c["ctm_variant"]][0]]
+        cmd += ["--direction-path", "${SOURCES[0]}",
+                "--variant",        c["ctm_variant"]]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.add_aggregate("ctm_result_pkls", list)
+nest.add("run_seed", lambda c: c["seed_dict"].keys())
+
+
+@nest.add_target_with_env(localenv)
+def run_ctm_monitor(env, outdir, c):
+    sources = [
+        c["assemble_pools"][2],
+        c["seed_dict"][c["run_seed"]],
+        c["create_ctm_config"][0],
+    ]
+    targets = [
+        path_join(outdir, "result.pkl"),
+        path_join(outdir, "run.log"),
+        path_join(outdir, "debug.csv"),
+    ]
+    cmd = [
+        "python", "src/run_ctm_monitor.py",
+        "--ctm-config",      "${SOURCES[2]}",
+        "--stream-csv",      "${SOURCES[1]}",
+        "--embeddings-path", "${SOURCES[0]}",
+        "--seed",            _monitor_seed(c["run_seed"]),
+        "--max-m-statistic", MAX_M_STATISTIC,
+        "--out",             "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+        "--debug-csv",       "${TARGETS[2]}",
+    ]
+    c["ctm_result_pkls"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd))
+
+
+@nest.add_target_with_env(localenv)
+def plot_ctm_e_statistic(env, outdir, c):
+    sources = [c["run_ctm_monitor"][2]]
+    targets = [
+        path_join(outdir, "e_statistic.png"),
+        path_join(outdir, "plot_e_statistic.log"),
+    ]
+    if _monitor_seed(c["run_seed"]) < 2:
+        cmd = [
+            "python", "src/plot_e_statistic.py",
+            "--debug-csv", "${SOURCES[0]}",
+            "--fig-path",  "${TARGETS[0]}",
+            "--log",       "${TARGETS[1]}",
+        ]
+        return env.Command(targets, sources, _run_cmd(cmd))
+
+
+nest.pop("run_seed")
+
+
+@nest.add_target_with_env(localenv)
+def ctm_cell_summary(env, outdir, c):
+    nodes = []
+    skip_null = N_NULL_SEEDS == 0
+    result_pkls = c["ctm_result_pkls"]
+    seed_class = _seed_class(None, None)
+    sources = result_pkls + [c["create_ctm_config"][0]]
+    shift_res_globs = []
+    null_res_glob = None
+    for pkl_path in result_pkls:
+        if "null_0" in pkl_path:
+            null_res_glob = path_join(
+                "exp_cebab", pkl_path.replace("null_0", f"null_{seed_class}"))
+        elif "seed_0" in pkl_path:
+            shift_res_globs.append(
+                path_join("exp_cebab", pkl_path.replace("seed_0", f"seed_{seed_class}")))
+    null_dat_glob = path_join("exp_cebab", OUTDIR, c["shift_aspect"], "null", f"seed_{seed_class}",
+                                "stream_metadata.json")
+    shift_dat_globs = []
+    for metadata_path in c["metadata_list"]:
+        if "seed_0" in metadata_path:
+            shift_dat_globs.append(
+                path_join("exp_cebab",
+                            metadata_path.replace("seed_0", f"seed_{seed_class}")))
+    targets = [
+        path_join(outdir, "summary.csv"),
+        path_join(outdir, "aggregate.log"),
+    ]
+    n_result_pkls = len(result_pkls)
+    cmd = [
+        "python", "src/aggregate_ctm_cell.py",
+        "--shift-res-globs", " ".join([f'"{gl}"' for gl in shift_res_globs]),
+        "--shift-dat-globs", " ".join([f'"{gl}"' for gl in shift_dat_globs]),
+        "--label",           c["shift_aspect"],
+        "--threshold-min",   THRESHOLD_MIN,
+        "--threshold-max",   THRESHOLD_MAX,
+        "--n-thresholds",    N_THRESHOLDS,
+        "--n-bootstrap",     N_BOOTSTRAP,
+        "--max-censor-rate", MAX_CENSOR_RATE,
+        "--config-json",     f"${{SOURCES[{n_result_pkls}]}}",
+        "--out-csv",         "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+    ]
+    if skip_null:
+        cmd += ["--skip-null"]
+    else:
+        cmd += ["--null-res-glob", f'"{null_res_glob}"',
+                "--null-dat-glob", f'"{null_dat_glob}"']
+    c["ctm_cell_summaries"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("ctm_variant")
+nest.pop("ctm_scorer")
+
+
+@nest.add_target_with_env(localenv)
+def aggregate_all_ctm(env, outdir, c):
+    cmd = [
+        "python", "src/aggregate_results.py",
+        "--input-csv", "${SOURCES}",
+        "--out-csv",   "${TARGETS[0]}",
+    ]
+    targets = [path_join(outdir, "all_ctm_summary.csv")]
+    return env.Command(targets, c["ctm_cell_summaries"], _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def aggregate_all(env, outdir, c):
+    cmd = [
+        "python", "src/aggregate_results.py",
+        "--input-csv", "${SOURCES}",
+        "--out-csv",   "${TARGETS[0]}",
+    ]
+    targets = [path_join(outdir, "all_summary.csv")]
+    return env.Command(targets, c["cell_summaries"], _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def final_plot(env, outdir, c):
+    sources = [c["aggregate_all"][0], c["aggregate_all_ctm"][0]]
+    targets = [
+        path_join(outdir, "arl_edd.png"),
+        path_join(outdir, "calibration_arl.png"),
+        path_join(outdir, "plot.log"),
+    ]
+    cmd = [
+        "python", "src/plot_cebab.py",
+        "--csv",             "${SOURCES[0]}",
+        "--ctm-csv",         "${SOURCES[1]}",
+        "--n-burn-in",       N_BURN_IN,
+        "--max-censor-rate", MAX_CENSOR_RATE,
+        "--out-nominal",     "${TARGETS[0]}",
+        "--out-calibration", "${TARGETS[1]}",
+        "--n-pre",           N_PRE,
+        "--threshold-min",   THRESHOLD_MIN,
+        "--threshold-max",   THRESHOLD_MAX,
+        "--threshold-min-null", THRESHOLD_MIN,
+        "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
+        "--hue-cols",        *PLOT_HUE_COLS,
+        "--title-prefix",    c["shift_aspect"],
+        "--log",             "${TARGETS[2]}",
+        "--baseline", "family=CTM",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def history_curves_plot(env, outdir, c):
+    sources = [c["aggregate_all"][0]]
+    targets = [
+        path_join(outdir, "history_curves.png"),
+        path_join(outdir, "history_curves.log"),
+    ]
+    cmd = [
+        "python", "src/plot_history_curves.py",
+        "--csv",           "${SOURCES[0]}",
+        "--out",           "${TARGETS[0]}",
+        "--n-burn-in",     N_BURN_IN,
+        "--n-pre",         N_PRE,
+        "--threshold-max", THRESHOLD_MAX_PLOT_NULL,
+        "--title-prefix",  c["shift_aspect"],
+        "--log",           "${TARGETS[1]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))

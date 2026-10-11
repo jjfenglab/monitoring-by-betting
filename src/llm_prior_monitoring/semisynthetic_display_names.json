@@ -1,0 +1,114 @@
+{
+  "fields": {
+    "family": "Monitor",
+    "cp_feature_source": "Changepoint input",
+    "concept_learner_type": "Score representation",
+    "changepoint_learner": "Changepoint estimator",
+    "e_process": "E-process",
+    "classifier_type": "Classifier",
+    "annotation_rate": "Annotation rate",
+    "imputer_variant": "Imputation",
+    "removal_variant": "Concept retention",
+    "scl_variant": "Removal schedule",
+    "sae_variant": "SAE fitting",
+    "oracle_variant": "Oracle concept set",
+    "budget_profile": "Budget profile",
+    "budget": "Annotation budget",
+    "search_all_sizes": "Subset search",
+    "history_sample_size": "History sample",
+    "scorer": "CTM score",
+    "variant": "Direction",
+    "jump_rates": "Jump rate"
+  },
+  "values": {
+    "family": {
+      "LGM": "Adaptive Monitor",
+      "CTM": "Conformal test martingale"
+    },
+    "cp_feature_source": {
+      "embedding": "Embeddings",
+      "concept": "Concept features"
+    },
+    "concept_learner_type": {
+      "identity": "Embedding features",
+      "mock": "Simulated concepts",
+      "sae": "Sparse-autoencoder features",
+      "bertopic_llm": "LLM-BERT concepts",
+      "ensemble": "Ensemble adaptive",
+      "ensemble_m": "Ensemble adaptive (averaged M_t)",
+      "oracle": "Oracle concepts"
+    },
+    "changepoint_learner": {
+      "mean_shift": "Mean shift",
+      "kernel_cosine": "Cosine-kernel change point",
+      "kernel_rbf": "RBF-kernel change point",
+      "sw_stored": "Sliced Wasserstein (fixed directions)",
+      "sw_random": "Sliced Wasserstein (random directions)"
+    },
+    "e_process": {
+      "ProposedMethod": "Symmetric SR e-process"
+    },
+    "classifier_type": {
+      "logistic": "Logistic regression",
+      "random_forest": "Random forest"
+    },
+    "imputer_variant": {
+      "off": "Fixed imputer",
+      "on": "Tuned imputer"
+    },
+    "removal_variant": {
+      "none": "No concept removal",
+      "importance": "Importance-based retention",
+      "greedy_1": "Permutation/refit retention (single)",
+      "greedy_n": "Permutation/refit retention (grouped)",
+      "random": "Random retention"
+    },
+    "scl_variant": {
+      "detect_then_remove": "Detect then remove",
+      "remove_then_detect": "Remove then detect"
+    },
+    "sae_variant": {
+      "frozen": "Frozen SAE",
+      "online": "Online (warm-started) SAE"
+    },
+    "oracle_variant": {
+      "oracle_true": "True concepts only",
+      "oracle_all8": "All eight annotated concepts",
+      "oracle_random_pool": "True concepts + random noise pool"
+    },
+    "search_all_sizes": {
+      "True": "Adaptive subset size",
+      "False": "Fixed subset size"
+    },
+    "scorer": {
+      "guided": "Direction-guided score",
+      "text_guided": "Direction-guided score",
+      "cosine_nn": "Nearest-neighbor cosine score",
+      "cosine_centroid": "Centroid cosine score"
+    },
+    "variant": {
+      "embedding-oracle": "Empirical embedding direction (infeasible upper bound)",
+      "text-oracle": "Shift-informed text direction",
+      "text-weak": "Weakly related text direction",
+      "text-unrelated": "Unrelated text direction",
+      "oracle": "Shift-informed text direction",
+      "weak": "Weakly related text direction",
+      "orthogonal": "Unrelated text direction"
+    }
+  },
+  "series_short_names": [
+    {"name": "oracle adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_true"}},
+    {"name": "oracle-all8 adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_all8"}},
+    {"name": "oracle-pool adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_random_pool"}},
+    {"name": "LLM+BERTopic adaptive", "match": {"family": "LGM", "concept_learner_type": "bertopic_llm"}},
+    {"name": "Ensemble adaptive", "match": {"family": "LGM", "concept_learner_type": "ensemble_m"}},
+    {"name": "simulated adaptive", "match": {"family": "LGM", "concept_learner_type": "mock"}},
+    {"name": "SAE-online adaptive", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "online"}},
+    {"name": "SAE adaptive", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "frozen"}},
+    {"name": "Embedding adaptive", "match": {"family": "LGM", "concept_learner_type": "identity"}},
+    {"name": "Oracle", "match": {"family": "CTM", "variant": "embedding-oracle"}},
+    {"name": "Informed-shift CTM", "match": {"family": "CTM", "variant": "text-oracle"}},
+    {"name": "Unrelated-shift CTM", "match": {"family": "CTM", "variant": "text-unrelated"}},
+    {"name": "Centroid CTM", "match": {"family": "CTM", "scorer": "cosine_centroid"}}
+  ]
+}
