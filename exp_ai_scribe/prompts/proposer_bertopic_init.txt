@@ -1,0 +1,44 @@
+We are monitoring an AI scribe deployed at a hospital. We want to monitor for changes in the quality of the original draft as well as the editing behavior. To do this, we have extracted keyphrases summarizing these two aspects for each clinical note, where we have the original draft from the AI scribe as well as edits made by the clinician. Shifts in keyphrases suggest shifts in concepts corresponding to these keyphrases, indicating a shift in either the quality of the draft or the editing behavior.
+
+We conducted a data-driven analysis using topic modeling (BERTopic) given keyphrases that represent the quality of the draft and editing behavior. Below are learned topics that show the largest prevalence shifts. We show the top documents in each topic. Positive shift means the topic increased in prevalence, negative means it decreased:
+
+{topics_text}
+
+YOUR TASK:
+Based on the top topics, propose {max_meta_concepts} candidate concepts that corresponds to each topic or encompasses multiple topics. A concept should be a yes/no question that will formally define what concept likely shifted. Concepts should be defined to encompass the representative documents as much as possible. A concept has to be defined as a yes/no question of the form "Does the initial draft ... based on the edits made?" or "Does the edit ...?", either describing the quality of the initial draft or what the clinician did to the AI's draft.
+
+Do not propose concepts that are simply a union of two different concepts (e.g. "Does the edit remove the narrative or add a template?" is not allowed), questions with answers that are almost always a yes (e.g. "Does the edit change any text?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the edit change the note significantly?" is not clearly defined because "significantly" is not measurable). Do not propose a concept question that only represents a small subset of keyphrases within a BERTopic-learned topic.
+
+For each concept, list the topic indices that were used to construct this concept. These topics will be excluded from future analyses once the concept is selected, to avoid redundant proposals.
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the topics (from largest to smallest shift).",
+  "concepts": [
+    {{"definition": "<QUESTION 1>", "topic_indices": [0]}},
+    {{"definition": "<QUESTION 2>", "topic_indices": [1, 2]}},
+    ...
+  ]
+}}
+
+Example answer:
+{{
+  "reasoning": "Step-by-step reasoning through the top shifted topics",
+  "concepts": [
+    {{
+      "definition": "Does the initial draft have missing procedure documentation based on the edits made?",
+      "topic_indices": [0]
+    }},
+    {{
+      "definition": "Does the edit remove narrative text?",
+      "topic_indices": [2, 5]
+    }},
+    {{
+      "definition": "Does the edit correct diagnosis?",
+      "topic_indices": [1]
+    }}
+  ]
+}}
+
+
+Final answer:

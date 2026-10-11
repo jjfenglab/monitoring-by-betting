@@ -1,0 +1,3 @@
+[submodule "HACHI"]
+	path = HACHI
+	url = https://github.com/jjfenglab/HACHI.git

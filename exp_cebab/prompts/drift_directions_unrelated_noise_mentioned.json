@@ -1,0 +1,7 @@
+[
+  {
+    "label": "parking_mention",
+    "ic": "a typical restaurant review describing the customer's experience of the visit",
+    "oc": "a restaurant review that mentions parking the car near the restaurant"
+  }
+]

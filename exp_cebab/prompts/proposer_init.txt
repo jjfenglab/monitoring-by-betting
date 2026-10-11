@@ -1,0 +1,46 @@
+We are monitoring for concepts that shift in prevalence in restaurant reviews that are posted over time. A concept has to be defined in terms of a yes/no question of the form "Does the review mention the...?". Pick concepts that are as specific as possible, without being too broad.
+
+We conducted a data-driven analysis of the top words most associated with the outcome Y, as estimated using a logistic regression model with tf-idf features.
+Words with top coefficients (positive coefficients are associated with Y=1, negative coefficients are associated with Y=0):
+
+{top_features_text}
+
+YOUR TASK:
+Suggest concepts that should be used to estimate the changepoint; this is essentially similar to suggesting concepts for a concept bottleneck model, but with the labels as before vs after a changepoint.
+Propose {max_meta_concepts} candidate concepts to use as inputs into a final interpretable changepoint estimation method, based on the results from the data-driven analysis on keyphrases. Prioritize related concepts that show up repeatedly.
+
+Do not propose concepts that are simply a union of two different concepts (e.g. "Does the review mention the food being cold or the restaurant being noisy?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the review mention the reviewer eating at the restaurant?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the review mention the reviewer having a problem?" is not clearly defined because a problem may mean a parking problem, a billing problem, etc).
+
+For each concept, list the keyphrases that were used to construct this concept. These keyphrases will be excluded from future analyses once the concept is selected, to avoid redundant proposals.
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the model concepts (from most to least predictive).",
+  "concepts": [
+    {{"definition": "<QUESTION 1>", "keyphrases": ["<keyphrase1>", "<keyphrase2>", ...]}},
+    {{"definition": "<QUESTION 2>", "keyphrases": ["<keyphrase1>", "<keyphrase2>", ...]}},
+    ...
+  ]
+}}
+
+Example answer:
+{{
+  "reasoning": "Step-by-step reasoning through the top shifted keyphrases",
+  "concepts": [
+    {{
+      "definition": "Does the review mention the restaurant having nice decor?",
+      "keyphrases": ["nice decor", "good decor"]
+    }},
+    {{
+      "definition": "Does the review mention restaurant parking?",
+      "keyphrases": ["parking", "hard to park", "good parking"]
+    }},
+    {{
+      "definition": "Does the review mention food quality being good?",
+      "keyphrases": ["good food", "high quality food"]
+    }}
+  ]
+}}
+
+
+Final answer:

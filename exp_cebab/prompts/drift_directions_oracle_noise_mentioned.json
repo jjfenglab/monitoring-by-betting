@@ -1,0 +1,7 @@
+[
+  {
+    "label": "noise_mention",
+    "ic": "a typical restaurant review describing the customer's experience of the visit",
+    "oc": "a restaurant review that comments on the noise level or acoustics of the restaurant"
+  }
+]

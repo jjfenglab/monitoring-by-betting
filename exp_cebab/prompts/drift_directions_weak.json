@@ -1,0 +1,12 @@
+[
+  {
+    "label": "ambiance_negative",
+    "ic": "a typical restaurant review describing the customer's experience of the visit",
+    "oc": "a restaurant review complaining about the ambiance or decor"
+  },
+  {
+    "label": "noise_mention",
+    "ic": "a typical restaurant review describing the customer's experience of the visit",
+    "oc": "a restaurant review that comments on how loud or quiet the restaurant was"
+  }
+]

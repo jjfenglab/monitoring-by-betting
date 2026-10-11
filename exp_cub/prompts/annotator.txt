@@ -1,0 +1,11 @@
+You will be given an image of a bird. Answer the question with a probability from 0 to 1. Answer with 0 or 1 when possible, but a probability between 0 and 1 is allowed if needed to express uncertainty, for example when a characteristic is obscured or only partially visible. Summarize your response with a JSON.
+
+Questions:
+{prompt_questions}
+
+Example answer:
+{{
+    "reasoning": "Reasoning for question 1",
+    "answer": 1
+}}
+Do not answer with anything else besides valid JSON. Do not add comments to the JSON.

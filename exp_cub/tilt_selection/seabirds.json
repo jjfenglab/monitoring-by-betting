@@ -1,0 +1,2733 @@
+{
+  "rule": {
+    "beta": 6.0,
+    "beta0": -4.0,
+    "min_prev": 0.1,
+    "max_prev": 0.4,
+    "max_mix_tv": 0.5,
+    "min_inferability": 0.75,
+    "probe_csv": "exp_cub/tilt_selection/seabirds.probe.csv"
+  },
+  "population": {
+    "classes": {
+      "1": "001.Black_footed_Albatross",
+      "2": "002.Laysan_Albatross",
+      "3": "003.Sooty_Albatross",
+      "5": "005.Crested_Auklet",
+      "6": "006.Least_Auklet",
+      "7": "007.Parakeet_Auklet",
+      "8": "008.Rhinoceros_Auklet",
+      "23": "023.Brandt_Cormorant",
+      "24": "024.Red_faced_Cormorant",
+      "25": "025.Pelagic_Cormorant",
+      "45": "045.Northern_Fulmar",
+      "59": "059.California_Gull",
+      "60": "060.Glaucous_winged_Gull",
+      "61": "061.Heermann_Gull",
+      "62": "062.Herring_Gull",
+      "63": "063.Ivory_Gull",
+      "64": "064.Ring_billed_Gull",
+      "65": "065.Slaty_backed_Gull",
+      "66": "066.Western_Gull",
+      "71": "071.Long_tailed_Jaeger",
+      "72": "072.Pomarine_Jaeger",
+      "84": "084.Red_legged_Kittiwake",
+      "89": "089.Hooded_Merganser",
+      "90": "090.Red_breasted_Merganser",
+      "100": "100.Brown_Pelican",
+      "101": "101.White_Pelican",
+      "106": "106.Horned_Puffin",
+      "141": "141.Artic_Tern",
+      "142": "142.Black_Tern",
+      "143": "143.Caspian_Tern",
+      "144": "144.Common_Tern",
+      "145": "145.Elegant_Tern",
+      "146": "146.Forsters_Tern",
+      "147": "147.Least_Tern"
+    },
+    "n_images": 1945
+  },
+  "attributes": {
+    "has_bill_shape::curved_(up_or_down)": {
+      "prevalence": 0.0334,
+      "mix_tv": 0.3092,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_shape::dagger": {
+      "prevalence": 0.183,
+      "mix_tv": 0.4729,
+      "pass_metadata": true,
+      "inferability": 0.6923,
+      "eligible": false
+    },
+    "has_bill_shape::hooked": {
+      "prevalence": 0.017,
+      "mix_tv": 0.1713,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_shape::needle": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.2237,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_shape::hooked_seabird": {
+      "prevalence": 0.3213,
+      "mix_tv": 0.363,
+      "pass_metadata": true,
+      "inferability": 0.7045,
+      "eligible": false
+    },
+    "has_bill_shape::spatulate": {
+      "prevalence": 0.1219,
+      "mix_tv": 0.3196,
+      "pass_metadata": true,
+      "inferability": 0.5238,
+      "eligible": false
+    },
+    "has_bill_shape::all-purpose": {
+      "prevalence": 0.1537,
+      "mix_tv": 0.3063,
+      "pass_metadata": true,
+      "inferability": 0.527,
+      "eligible": false
+    },
+    "has_bill_shape::cone": {
+      "prevalence": 0.055,
+      "mix_tv": 0.3901,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_shape::specialized": {
+      "prevalence": 0.0797,
+      "mix_tv": 0.576,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::blue": {
+      "prevalence": 0.0082,
+      "mix_tv": 0.1971,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::brown": {
+      "prevalence": 0.1275,
+      "mix_tv": 0.3371,
+      "pass_metadata": true,
+      "inferability": 0.6851,
+      "eligible": false
+    },
+    "has_wing_color::iridescent": {
+      "prevalence": 0.0144,
+      "mix_tv": 0.3018,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::purple": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.159,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::rufous": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0963,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::grey": {
+      "prevalence": 0.4237,
+      "mix_tv": 0.2364,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::yellow": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1362,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::olive": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.122,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::green": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1097,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::pink": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1562,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::orange": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.171,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::black": {
+      "prevalence": 0.347,
+      "mix_tv": 0.225,
+      "pass_metadata": true,
+      "inferability": 0.7348,
+      "eligible": false
+    },
+    "has_wing_color::white": {
+      "prevalence": 0.3712,
+      "mix_tv": 0.2784,
+      "pass_metadata": true,
+      "inferability": 0.7256,
+      "eligible": false
+    },
+    "has_wing_color::red": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1442,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_color::buff": {
+      "prevalence": 0.0802,
+      "mix_tv": 0.287,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::blue": {
+      "prevalence": 0.0098,
+      "mix_tv": 0.1933,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::brown": {
+      "prevalence": 0.1069,
+      "mix_tv": 0.3523,
+      "pass_metadata": true,
+      "inferability": 0.7364,
+      "eligible": false
+    },
+    "has_upperparts_color::iridescent": {
+      "prevalence": 0.0201,
+      "mix_tv": 0.2932,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::purple": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1611,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::rufous": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0843,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::grey": {
+      "prevalence": 0.3969,
+      "mix_tv": 0.2362,
+      "pass_metadata": true,
+      "inferability": 0.7891,
+      "eligible": true
+    },
+    "has_upperparts_color::yellow": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0934,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::olive": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1579,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::green": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1252,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::pink": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1495,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::orange": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1163,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::black": {
+      "prevalence": 0.3512,
+      "mix_tv": 0.2703,
+      "pass_metadata": true,
+      "inferability": 0.6905,
+      "eligible": false
+    },
+    "has_upperparts_color::white": {
+      "prevalence": 0.3733,
+      "mix_tv": 0.2866,
+      "pass_metadata": true,
+      "inferability": 0.7271,
+      "eligible": false
+    },
+    "has_upperparts_color::red": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1627,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upperparts_color::buff": {
+      "prevalence": 0.0648,
+      "mix_tv": 0.3064,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::blue": {
+      "prevalence": 0.0077,
+      "mix_tv": 0.1709,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::brown": {
+      "prevalence": 0.053,
+      "mix_tv": 0.3392,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::iridescent": {
+      "prevalence": 0.0139,
+      "mix_tv": 0.2777,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::purple": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1554,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::rufous": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0967,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::grey": {
+      "prevalence": 0.1825,
+      "mix_tv": 0.2855,
+      "pass_metadata": true,
+      "inferability": 0.7141,
+      "eligible": false
+    },
+    "has_underparts_color::yellow": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1101,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::olive": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1311,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::green": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.1001,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::pink": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1721,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::orange": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0928,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::black": {
+      "prevalence": 0.1409,
+      "mix_tv": 0.4347,
+      "pass_metadata": true,
+      "inferability": 0.8864,
+      "eligible": true
+    },
+    "has_underparts_color::white": {
+      "prevalence": 0.5789,
+      "mix_tv": 0.2466,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::red": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1583,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_underparts_color::buff": {
+      "prevalence": 0.0653,
+      "mix_tv": 0.2665,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_pattern::solid": {
+      "prevalence": 0.6823,
+      "mix_tv": 0.1357,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_pattern::spotted": {
+      "prevalence": 0.038,
+      "mix_tv": 0.3193,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_pattern::striped": {
+      "prevalence": 0.0653,
+      "mix_tv": 0.3234,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_pattern::multi-colored": {
+      "prevalence": 0.109,
+      "mix_tv": 0.3145,
+      "pass_metadata": true,
+      "inferability": 0.55,
+      "eligible": false
+    },
+    "has_back_color::blue": {
+      "prevalence": 0.0093,
+      "mix_tv": 0.1864,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::brown": {
+      "prevalence": 0.0823,
+      "mix_tv": 0.3541,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::iridescent": {
+      "prevalence": 0.0154,
+      "mix_tv": 0.2755,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::purple": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1509,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::rufous": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1055,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::grey": {
+      "prevalence": 0.3095,
+      "mix_tv": 0.2451,
+      "pass_metadata": true,
+      "inferability": 0.8174,
+      "eligible": true
+    },
+    "has_back_color::yellow": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1566,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::olive": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1769,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::green": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1401,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::pink": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1214,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::orange": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1324,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::black": {
+      "prevalence": 0.2632,
+      "mix_tv": 0.3777,
+      "pass_metadata": true,
+      "inferability": 0.8166,
+      "eligible": true
+    },
+    "has_back_color::white": {
+      "prevalence": 0.3105,
+      "mix_tv": 0.3209,
+      "pass_metadata": true,
+      "inferability": 0.727,
+      "eligible": false
+    },
+    "has_back_color::red": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1448,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_color::buff": {
+      "prevalence": 0.0576,
+      "mix_tv": 0.2673,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_tail_shape::forked_tail": {
+      "prevalence": 0.0879,
+      "mix_tv": 0.3629,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_tail_shape::rounded_tail": {
+      "prevalence": 0.1013,
+      "mix_tv": 0.1726,
+      "pass_metadata": true,
+      "inferability": 0.5147,
+      "eligible": false
+    },
+    "has_tail_shape::notched_tail": {
+      "prevalence": 0.1111,
+      "mix_tv": 0.1379,
+      "pass_metadata": true,
+      "inferability": 0.5401,
+      "eligible": false
+    },
+    "has_tail_shape::fan-shaped_tail": {
+      "prevalence": 0.1285,
+      "mix_tv": 0.1649,
+      "pass_metadata": true,
+      "inferability": 0.5731,
+      "eligible": false
+    },
+    "has_tail_shape::pointed_tail": {
+      "prevalence": 0.1851,
+      "mix_tv": 0.1981,
+      "pass_metadata": true,
+      "inferability": 0.6788,
+      "eligible": false
+    },
+    "has_tail_shape::squared_tail": {
+      "prevalence": 0.1254,
+      "mix_tv": 0.1681,
+      "pass_metadata": true,
+      "inferability": 0.681,
+      "eligible": false
+    },
+    "has_upper_tail_color::blue": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.1761,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::brown": {
+      "prevalence": 0.0699,
+      "mix_tv": 0.3475,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::iridescent": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.2713,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::purple": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1441,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::rufous": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0628,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::grey": {
+      "prevalence": 0.2494,
+      "mix_tv": 0.2363,
+      "pass_metadata": true,
+      "inferability": 0.5895,
+      "eligible": false
+    },
+    "has_upper_tail_color::yellow": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1098,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::olive": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1417,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::green": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0815,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::pink": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1663,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::orange": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1545,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::black": {
+      "prevalence": 0.2396,
+      "mix_tv": 0.2741,
+      "pass_metadata": true,
+      "inferability": 0.6316,
+      "eligible": false
+    },
+    "has_upper_tail_color::white": {
+      "prevalence": 0.2951,
+      "mix_tv": 0.3052,
+      "pass_metadata": true,
+      "inferability": 0.6225,
+      "eligible": false
+    },
+    "has_upper_tail_color::red": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.1605,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_upper_tail_color::buff": {
+      "prevalence": 0.0519,
+      "mix_tv": 0.2788,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::spotted": {
+      "prevalence": 0.0303,
+      "mix_tv": 0.3045,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::malar": {
+      "prevalence": 0.0401,
+      "mix_tv": 0.2463,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::crested": {
+      "prevalence": 0.0596,
+      "mix_tv": 0.4634,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::masked": {
+      "prevalence": 0.0581,
+      "mix_tv": 0.2917,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::unique_pattern": {
+      "prevalence": 0.0422,
+      "mix_tv": 0.3046,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::eyebrow": {
+      "prevalence": 0.0416,
+      "mix_tv": 0.2524,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::eyering": {
+      "prevalence": 0.0869,
+      "mix_tv": 0.2052,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::plain": {
+      "prevalence": 0.3604,
+      "mix_tv": 0.2814,
+      "pass_metadata": true,
+      "inferability": 0.7053,
+      "eligible": false
+    },
+    "has_head_pattern::eyeline": {
+      "prevalence": 0.1069,
+      "mix_tv": 0.2745,
+      "pass_metadata": true,
+      "inferability": 0.5234,
+      "eligible": false
+    },
+    "has_head_pattern::striped": {
+      "prevalence": 0.0406,
+      "mix_tv": 0.2123,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_head_pattern::capped": {
+      "prevalence": 0.1527,
+      "mix_tv": 0.4578,
+      "pass_metadata": true,
+      "inferability": 0.782,
+      "eligible": true
+    },
+    "has_breast_color::blue": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1556,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::brown": {
+      "prevalence": 0.0679,
+      "mix_tv": 0.3852,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::iridescent": {
+      "prevalence": 0.0139,
+      "mix_tv": 0.2544,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::purple": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.141,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::rufous": {
+      "prevalence": 0.001,
+      "mix_tv": 0.0456,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::grey": {
+      "prevalence": 0.1892,
+      "mix_tv": 0.2948,
+      "pass_metadata": true,
+      "inferability": 0.6364,
+      "eligible": false
+    },
+    "has_breast_color::yellow": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1629,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::olive": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1311,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::green": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0649,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::pink": {
+      "prevalence": 0.0077,
+      "mix_tv": 0.1797,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::orange": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1371,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::black": {
+      "prevalence": 0.1656,
+      "mix_tv": 0.4598,
+      "pass_metadata": true,
+      "inferability": 0.8398,
+      "eligible": true
+    },
+    "has_breast_color::white": {
+      "prevalence": 0.5943,
+      "mix_tv": 0.241,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::red": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1501,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_breast_color::buff": {
+      "prevalence": 0.074,
+      "mix_tv": 0.3261,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::blue": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.2487,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::brown": {
+      "prevalence": 0.054,
+      "mix_tv": 0.3808,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::iridescent": {
+      "prevalence": 0.0139,
+      "mix_tv": 0.2959,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::purple": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1637,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::rufous": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.109,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::grey": {
+      "prevalence": 0.1542,
+      "mix_tv": 0.2675,
+      "pass_metadata": true,
+      "inferability": 0.7073,
+      "eligible": false
+    },
+    "has_throat_color::yellow": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1567,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::olive": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1108,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::green": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0819,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::pink": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1543,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::orange": {
+      "prevalence": 0.0082,
+      "mix_tv": 0.2012,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::black": {
+      "prevalence": 0.2206,
+      "mix_tv": 0.4974,
+      "pass_metadata": true,
+      "inferability": 0.8351,
+      "eligible": true
+    },
+    "has_throat_color::white": {
+      "prevalence": 0.564,
+      "mix_tv": 0.2907,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::red": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1731,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_throat_color::buff": {
+      "prevalence": 0.0612,
+      "mix_tv": 0.3184,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::blue": {
+      "prevalence": 0.0237,
+      "mix_tv": 0.3483,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::brown": {
+      "prevalence": 0.0252,
+      "mix_tv": 0.27,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::purple": {
+      "prevalence": 0.001,
+      "mix_tv": 0.0441,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::rufous": {
+      "prevalence": 0.0154,
+      "mix_tv": 0.2982,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::grey": {
+      "prevalence": 0.0288,
+      "mix_tv": 0.1607,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::yellow": {
+      "prevalence": 0.0406,
+      "mix_tv": 0.4373,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::olive": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1622,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::green": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0629,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::pink": {
+      "prevalence": 0.0072,
+      "mix_tv": 0.178,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::orange": {
+      "prevalence": 0.0175,
+      "mix_tv": 0.3394,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::black": {
+      "prevalence": 0.7213,
+      "mix_tv": 0.0916,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::white": {
+      "prevalence": 0.1054,
+      "mix_tv": 0.4866,
+      "pass_metadata": true,
+      "inferability": 0.717,
+      "eligible": false
+    },
+    "has_eye_color::red": {
+      "prevalence": 0.0237,
+      "mix_tv": 0.3313,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_eye_color::buff": {
+      "prevalence": 0.0195,
+      "mix_tv": 0.2414,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_length::about_the_same_as_head": {
+      "prevalence": 0.655,
+      "mix_tv": 0.1545,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_length::longer_than_head": {
+      "prevalence": 0.1131,
+      "mix_tv": 0.4327,
+      "pass_metadata": true,
+      "inferability": 0.8059,
+      "eligible": true
+    },
+    "has_bill_length::shorter_than_head": {
+      "prevalence": 0.2149,
+      "mix_tv": 0.4,
+      "pass_metadata": true,
+      "inferability": 0.6864,
+      "eligible": false
+    },
+    "has_forehead_color::blue": {
+      "prevalence": 0.0077,
+      "mix_tv": 0.1808,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::brown": {
+      "prevalence": 0.0632,
+      "mix_tv": 0.3796,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::iridescent": {
+      "prevalence": 0.0139,
+      "mix_tv": 0.2592,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::purple": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1449,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::rufous": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0625,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::grey": {
+      "prevalence": 0.1532,
+      "mix_tv": 0.2487,
+      "pass_metadata": true,
+      "inferability": 0.6301,
+      "eligible": false
+    },
+    "has_forehead_color::yellow": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1827,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::olive": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1109,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::green": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0846,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::pink": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0962,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::orange": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.1946,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::black": {
+      "prevalence": 0.3738,
+      "mix_tv": 0.3764,
+      "pass_metadata": true,
+      "inferability": 0.8051,
+      "eligible": true
+    },
+    "has_forehead_color::white": {
+      "prevalence": 0.4113,
+      "mix_tv": 0.3871,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::red": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.199,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_forehead_color::buff": {
+      "prevalence": 0.0535,
+      "mix_tv": 0.2558,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::blue": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1595,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::brown": {
+      "prevalence": 0.0735,
+      "mix_tv": 0.326,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::iridescent": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.2519,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::purple": {
+      "prevalence": 0.0031,
+      "mix_tv": 0.1131,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::rufous": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1245,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::grey": {
+      "prevalence": 0.2329,
+      "mix_tv": 0.2078,
+      "pass_metadata": true,
+      "inferability": 0.5117,
+      "eligible": false
+    },
+    "has_under_tail_color::yellow": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0793,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::olive": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.122,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::green": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0646,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::pink": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1487,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::orange": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1477,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::black": {
+      "prevalence": 0.2997,
+      "mix_tv": 0.1996,
+      "pass_metadata": true,
+      "inferability": 0.5742,
+      "eligible": false
+    },
+    "has_under_tail_color::white": {
+      "prevalence": 0.344,
+      "mix_tv": 0.3248,
+      "pass_metadata": true,
+      "inferability": 0.6811,
+      "eligible": false
+    },
+    "has_under_tail_color::red": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1201,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_under_tail_color::buff": {
+      "prevalence": 0.0509,
+      "mix_tv": 0.2648,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::blue": {
+      "prevalence": 0.0072,
+      "mix_tv": 0.1719,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::brown": {
+      "prevalence": 0.0735,
+      "mix_tv": 0.3759,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::iridescent": {
+      "prevalence": 0.0149,
+      "mix_tv": 0.247,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::purple": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1579,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::rufous": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0815,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::grey": {
+      "prevalence": 0.1728,
+      "mix_tv": 0.2622,
+      "pass_metadata": true,
+      "inferability": 0.7314,
+      "eligible": false
+    },
+    "has_nape_color::yellow": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1344,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::olive": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1366,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::green": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0967,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::pink": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.1588,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::orange": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1478,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::black": {
+      "prevalence": 0.3213,
+      "mix_tv": 0.4059,
+      "pass_metadata": true,
+      "inferability": 0.7887,
+      "eligible": true
+    },
+    "has_nape_color::white": {
+      "prevalence": 0.5131,
+      "mix_tv": 0.2718,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::red": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.1774,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_nape_color::buff": {
+      "prevalence": 0.0581,
+      "mix_tv": 0.3193,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::blue": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1495,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::brown": {
+      "prevalence": 0.0447,
+      "mix_tv": 0.3313,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::iridescent": {
+      "prevalence": 0.0103,
+      "mix_tv": 0.26,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::purple": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1293,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::rufous": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1673,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::grey": {
+      "prevalence": 0.1635,
+      "mix_tv": 0.2723,
+      "pass_metadata": true,
+      "inferability": 0.6459,
+      "eligible": false
+    },
+    "has_belly_color::yellow": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1638,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::olive": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1311,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::green": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0819,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::pink": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.15,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::orange": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.1154,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::black": {
+      "prevalence": 0.1254,
+      "mix_tv": 0.4463,
+      "pass_metadata": true,
+      "inferability": 0.81,
+      "eligible": true
+    },
+    "has_belly_color::white": {
+      "prevalence": 0.5599,
+      "mix_tv": 0.2566,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::red": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1488,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_color::buff": {
+      "prevalence": 0.0596,
+      "mix_tv": 0.2521,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_shape::rounded-wings": {
+      "prevalence": 0.1589,
+      "mix_tv": 0.1631,
+      "pass_metadata": true,
+      "inferability": 0.6425,
+      "eligible": false
+    },
+    "has_wing_shape::pointed-wings": {
+      "prevalence": 0.1722,
+      "mix_tv": 0.1234,
+      "pass_metadata": true,
+      "inferability": 0.5378,
+      "eligible": false
+    },
+    "has_wing_shape::broad-wings": {
+      "prevalence": 0.09,
+      "mix_tv": 0.1627,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_shape::tapered-wings": {
+      "prevalence": 0.145,
+      "mix_tv": 0.1982,
+      "pass_metadata": true,
+      "inferability": 0.5233,
+      "eligible": false
+    },
+    "has_wing_shape::long-wings": {
+      "prevalence": 0.1985,
+      "mix_tv": 0.1913,
+      "pass_metadata": true,
+      "inferability": 0.6504,
+      "eligible": false
+    },
+    "has_size::large_(16_-_32_in)": {
+      "prevalence": 0.126,
+      "mix_tv": 0.1955,
+      "pass_metadata": true,
+      "inferability": 0.6174,
+      "eligible": false
+    },
+    "has_size::small_(5_-_9_in)": {
+      "prevalence": 0.1748,
+      "mix_tv": 0.251,
+      "pass_metadata": true,
+      "inferability": 0.6712,
+      "eligible": false
+    },
+    "has_size::very_large_(32_-_72_in)": {
+      "prevalence": 0.0689,
+      "mix_tv": 0.449,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_size::medium_(9_-_16_in)": {
+      "prevalence": 0.599,
+      "mix_tv": 0.0874,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_size::very_small_(3_-_5_in)": {
+      "prevalence": 0.0314,
+      "mix_tv": 0.2052,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::upright-perching_water-like": {
+      "prevalence": 0.091,
+      "mix_tv": 0.3069,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::chicken-like-marsh": {
+      "prevalence": 0.0452,
+      "mix_tv": 0.2013,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::long-legged-like": {
+      "prevalence": 0.0488,
+      "mix_tv": 0.4526,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::duck-like": {
+      "prevalence": 0.1799,
+      "mix_tv": 0.3428,
+      "pass_metadata": true,
+      "inferability": 0.5044,
+      "eligible": false
+    },
+    "has_shape::owl-like": {
+      "prevalence": 0.0036,
+      "mix_tv": 0.12,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::gull-like": {
+      "prevalence": 0.3193,
+      "mix_tv": 0.2392,
+      "pass_metadata": true,
+      "inferability": 0.7308,
+      "eligible": false
+    },
+    "has_shape::hummingbird-like": {
+      "prevalence": 0.0134,
+      "mix_tv": 0.2282,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::pigeon-like": {
+      "prevalence": 0.0699,
+      "mix_tv": 0.2353,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::tree-clinging-like": {
+      "prevalence": 0.0103,
+      "mix_tv": 0.1934,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::hawk-like": {
+      "prevalence": 0.035,
+      "mix_tv": 0.2557,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::sandpiper-like": {
+      "prevalence": 0.0596,
+      "mix_tv": 0.3178,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::upland-ground-like": {
+      "prevalence": 0.0339,
+      "mix_tv": 0.2073,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::swallow-like": {
+      "prevalence": 0.0514,
+      "mix_tv": 0.2949,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_shape::perching-like": {
+      "prevalence": 0.0386,
+      "mix_tv": 0.2257,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_pattern::solid": {
+      "prevalence": 0.4879,
+      "mix_tv": 0.1225,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_pattern::spotted": {
+      "prevalence": 0.0257,
+      "mix_tv": 0.2244,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_pattern::striped": {
+      "prevalence": 0.0704,
+      "mix_tv": 0.2536,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_back_pattern::multi-colored": {
+      "prevalence": 0.1913,
+      "mix_tv": 0.2104,
+      "pass_metadata": true,
+      "inferability": 0.5825,
+      "eligible": false
+    },
+    "has_tail_pattern::solid": {
+      "prevalence": 0.419,
+      "mix_tv": 0.1153,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_tail_pattern::spotted": {
+      "prevalence": 0.0386,
+      "mix_tv": 0.3201,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_tail_pattern::striped": {
+      "prevalence": 0.0735,
+      "mix_tv": 0.2047,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_tail_pattern::multi-colored": {
+      "prevalence": 0.218,
+      "mix_tv": 0.21,
+      "pass_metadata": true,
+      "inferability": 0.5143,
+      "eligible": false
+    },
+    "has_belly_pattern::solid": {
+      "prevalence": 0.6612,
+      "mix_tv": 0.139,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_pattern::spotted": {
+      "prevalence": 0.0324,
+      "mix_tv": 0.3089,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_pattern::striped": {
+      "prevalence": 0.054,
+      "mix_tv": 0.2773,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_belly_pattern::multi-colored": {
+      "prevalence": 0.0766,
+      "mix_tv": 0.2266,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::blue": {
+      "prevalence": 0.0175,
+      "mix_tv": 0.2006,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::brown": {
+      "prevalence": 0.1275,
+      "mix_tv": 0.4012,
+      "pass_metadata": true,
+      "inferability": 0.9041,
+      "eligible": true
+    },
+    "has_primary_color::iridescent": {
+      "prevalence": 0.0139,
+      "mix_tv": 0.3188,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::purple": {
+      "prevalence": 0.0113,
+      "mix_tv": 0.1723,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::rufous": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0928,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::grey": {
+      "prevalence": 0.3969,
+      "mix_tv": 0.209,
+      "pass_metadata": true,
+      "inferability": 0.7581,
+      "eligible": true
+    },
+    "has_primary_color::yellow": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1502,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::olive": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1518,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::green": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.1001,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::pink": {
+      "prevalence": 0.0087,
+      "mix_tv": 0.2091,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::orange": {
+      "prevalence": 0.0134,
+      "mix_tv": 0.2141,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::black": {
+      "prevalence": 0.3769,
+      "mix_tv": 0.2797,
+      "pass_metadata": true,
+      "inferability": 0.837,
+      "eligible": true
+    },
+    "has_primary_color::white": {
+      "prevalence": 0.5609,
+      "mix_tv": 0.2439,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::red": {
+      "prevalence": 0.0129,
+      "mix_tv": 0.2187,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_primary_color::buff": {
+      "prevalence": 0.0848,
+      "mix_tv": 0.3059,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::blue": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1524,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::brown": {
+      "prevalence": 0.0386,
+      "mix_tv": 0.1744,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::iridescent": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.0982,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::purple": {
+      "prevalence": 0.0057,
+      "mix_tv": 0.1724,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::rufous": {
+      "prevalence": 0.0206,
+      "mix_tv": 0.2949,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::grey": {
+      "prevalence": 0.129,
+      "mix_tv": 0.3289,
+      "pass_metadata": true,
+      "inferability": 0.6029,
+      "eligible": false
+    },
+    "has_leg_color::yellow": {
+      "prevalence": 0.035,
+      "mix_tv": 0.4293,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::olive": {
+      "prevalence": 0.001,
+      "mix_tv": 0.0446,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::green": {
+      "prevalence": 0.0,
+      "mix_tv": 0.0,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::pink": {
+      "prevalence": 0.0391,
+      "mix_tv": 0.4836,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::orange": {
+      "prevalence": 0.1121,
+      "mix_tv": 0.4518,
+      "pass_metadata": true,
+      "inferability": 0.7823,
+      "eligible": true
+    },
+    "has_leg_color::black": {
+      "prevalence": 0.1928,
+      "mix_tv": 0.3949,
+      "pass_metadata": true,
+      "inferability": 0.7713,
+      "eligible": true
+    },
+    "has_leg_color::white": {
+      "prevalence": 0.0499,
+      "mix_tv": 0.3377,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::red": {
+      "prevalence": 0.0638,
+      "mix_tv": 0.4599,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_leg_color::buff": {
+      "prevalence": 0.092,
+      "mix_tv": 0.3475,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::blue": {
+      "prevalence": 0.0082,
+      "mix_tv": 0.1983,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::brown": {
+      "prevalence": 0.0499,
+      "mix_tv": 0.2651,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::iridescent": {
+      "prevalence": 0.0051,
+      "mix_tv": 0.1501,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::purple": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0627,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::rufous": {
+      "prevalence": 0.0452,
+      "mix_tv": 0.401,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::grey": {
+      "prevalence": 0.1476,
+      "mix_tv": 0.3267,
+      "pass_metadata": true,
+      "inferability": 0.7449,
+      "eligible": false
+    },
+    "has_bill_color::yellow": {
+      "prevalence": 0.1625,
+      "mix_tv": 0.4525,
+      "pass_metadata": true,
+      "inferability": 0.7985,
+      "eligible": true
+    },
+    "has_bill_color::olive": {
+      "prevalence": 0.0026,
+      "mix_tv": 0.094,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::green": {
+      "prevalence": 0.0021,
+      "mix_tv": 0.0819,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::pink": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.1949,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::orange": {
+      "prevalence": 0.2077,
+      "mix_tv": 0.3608,
+      "pass_metadata": true,
+      "inferability": 0.7789,
+      "eligible": true
+    },
+    "has_bill_color::black": {
+      "prevalence": 0.3414,
+      "mix_tv": 0.3114,
+      "pass_metadata": true,
+      "inferability": 0.7746,
+      "eligible": true
+    },
+    "has_bill_color::white": {
+      "prevalence": 0.0864,
+      "mix_tv": 0.3128,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_bill_color::red": {
+      "prevalence": 0.1337,
+      "mix_tv": 0.3991,
+      "pass_metadata": true,
+      "inferability": 0.6854,
+      "eligible": false
+    },
+    "has_bill_color::buff": {
+      "prevalence": 0.1409,
+      "mix_tv": 0.3352,
+      "pass_metadata": true,
+      "inferability": 0.6076,
+      "eligible": false
+    },
+    "has_crown_color::blue": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1545,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::brown": {
+      "prevalence": 0.0653,
+      "mix_tv": 0.3756,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::iridescent": {
+      "prevalence": 0.0118,
+      "mix_tv": 0.2773,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::purple": {
+      "prevalence": 0.0046,
+      "mix_tv": 0.1506,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::rufous": {
+      "prevalence": 0.0015,
+      "mix_tv": 0.0626,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::grey": {
+      "prevalence": 0.1702,
+      "mix_tv": 0.2779,
+      "pass_metadata": true,
+      "inferability": 0.7541,
+      "eligible": true
+    },
+    "has_crown_color::yellow": {
+      "prevalence": 0.0082,
+      "mix_tv": 0.2155,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::olive": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.1366,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::green": {
+      "prevalence": 0.0041,
+      "mix_tv": 0.135,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::pink": {
+      "prevalence": 0.0062,
+      "mix_tv": 0.1535,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::orange": {
+      "prevalence": 0.0067,
+      "mix_tv": 0.162,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::black": {
+      "prevalence": 0.4139,
+      "mix_tv": 0.3667,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::white": {
+      "prevalence": 0.364,
+      "mix_tv": 0.429,
+      "pass_metadata": true,
+      "inferability": 0.859,
+      "eligible": true
+    },
+    "has_crown_color::red": {
+      "prevalence": 0.0093,
+      "mix_tv": 0.1892,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_crown_color::buff": {
+      "prevalence": 0.0586,
+      "mix_tv": 0.2822,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_pattern::solid": {
+      "prevalence": 0.4581,
+      "mix_tv": 0.1281,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_pattern::spotted": {
+      "prevalence": 0.036,
+      "mix_tv": 0.2676,
+      "pass_metadata": false,
+      "inferability": null,
+      "eligible": false
+    },
+    "has_wing_pattern::striped": {
+      "prevalence": 0.1085,
+      "mix_tv": 0.2254,
+      "pass_metadata": true,
+      "inferability": 0.5945,
+      "eligible": false
+    },
+    "has_wing_pattern::multi-colored": {
+      "prevalence": 0.2571,
+      "mix_tv": 0.2198,
+      "pass_metadata": true,
+      "inferability": 0.5816,
+      "eligible": false
+    }
+  },
+  "correlations": {
+    "has_upperparts_color::grey": {
+      "has_upperparts_color::grey": 1.0,
+      "has_underparts_color::black": -0.114,
+      "has_back_color::grey": 0.714,
+      "has_back_color::black": -0.184,
+      "has_head_pattern::capped": 0.003,
+      "has_breast_color::black": -0.141,
+      "has_throat_color::black": -0.183,
+      "has_bill_length::longer_than_head": -0.124,
+      "has_forehead_color::black": -0.162,
+      "has_nape_color::black": -0.124,
+      "has_belly_color::black": -0.13,
+      "has_primary_color::brown": -0.178,
+      "has_primary_color::grey": 0.639,
+      "has_primary_color::black": -0.215,
+      "has_leg_color::orange": 0.055,
+      "has_leg_color::black": -0.029,
+      "has_bill_color::yellow": 0.158,
+      "has_bill_color::orange": 0.041,
+      "has_bill_color::black": 0.032,
+      "has_crown_color::grey": 0.27,
+      "has_crown_color::white": 0.203
+    },
+    "has_underparts_color::black": {
+      "has_upperparts_color::grey": -0.114,
+      "has_underparts_color::black": 1.0,
+      "has_back_color::grey": -0.127,
+      "has_back_color::black": 0.402,
+      "has_head_pattern::capped": -0.077,
+      "has_breast_color::black": 0.718,
+      "has_throat_color::black": 0.533,
+      "has_bill_length::longer_than_head": -0.051,
+      "has_forehead_color::black": 0.326,
+      "has_nape_color::black": 0.414,
+      "has_belly_color::black": 0.806,
+      "has_primary_color::brown": -0.031,
+      "has_primary_color::grey": -0.153,
+      "has_primary_color::black": 0.402,
+      "has_leg_color::orange": -0.12,
+      "has_leg_color::black": 0.289,
+      "has_bill_color::yellow": -0.122,
+      "has_bill_color::orange": -0.076,
+      "has_bill_color::black": 0.204,
+      "has_crown_color::grey": -0.097,
+      "has_crown_color::white": -0.177
+    },
+    "has_back_color::grey": {
+      "has_upperparts_color::grey": 0.714,
+      "has_underparts_color::black": -0.127,
+      "has_back_color::grey": 1.0,
+      "has_back_color::black": -0.193,
+      "has_head_pattern::capped": -0.006,
+      "has_breast_color::black": -0.149,
+      "has_throat_color::black": -0.19,
+      "has_bill_length::longer_than_head": -0.085,
+      "has_forehead_color::black": -0.172,
+      "has_nape_color::black": -0.163,
+      "has_belly_color::black": -0.116,
+      "has_primary_color::brown": -0.149,
+      "has_primary_color::grey": 0.593,
+      "has_primary_color::black": -0.241,
+      "has_leg_color::orange": 0.048,
+      "has_leg_color::black": -0.059,
+      "has_bill_color::yellow": 0.139,
+      "has_bill_color::orange": 0.025,
+      "has_bill_color::black": 0.003,
+      "has_crown_color::grey": 0.292,
+      "has_crown_color::white": 0.171
+    },
+    "has_back_color::black": {
+      "has_upperparts_color::grey": -0.184,
+      "has_underparts_color::black": 0.402,
+      "has_back_color::grey": -0.193,
+      "has_back_color::black": 1.0,
+      "has_head_pattern::capped": -0.117,
+      "has_breast_color::black": 0.466,
+      "has_throat_color::black": 0.572,
+      "has_bill_length::longer_than_head": -0.07,
+      "has_forehead_color::black": 0.376,
+      "has_nape_color::black": 0.461,
+      "has_belly_color::black": 0.376,
+      "has_primary_color::brown": -0.025,
+      "has_primary_color::grey": -0.213,
+      "has_primary_color::black": 0.581,
+      "has_leg_color::orange": -0.127,
+      "has_leg_color::black": 0.119,
+      "has_bill_color::yellow": -0.067,
+      "has_bill_color::orange": -0.001,
+      "has_bill_color::black": 0.082,
+      "has_crown_color::grey": -0.069,
+      "has_crown_color::white": -0.195
+    },
+    "has_head_pattern::capped": {
+      "has_upperparts_color::grey": 0.003,
+      "has_underparts_color::black": -0.077,
+      "has_back_color::grey": -0.006,
+      "has_back_color::black": -0.117,
+      "has_head_pattern::capped": 1.0,
+      "has_breast_color::black": -0.104,
+      "has_throat_color::black": -0.126,
+      "has_bill_length::longer_than_head": -0.048,
+      "has_forehead_color::black": 0.233,
+      "has_nape_color::black": 0.127,
+      "has_belly_color::black": -0.087,
+      "has_primary_color::brown": -0.077,
+      "has_primary_color::grey": -0.011,
+      "has_primary_color::black": -0.065,
+      "has_leg_color::orange": 0.171,
+      "has_leg_color::black": 0.017,
+      "has_bill_color::yellow": -0.094,
+      "has_bill_color::orange": 0.146,
+      "has_bill_color::black": 0.056,
+      "has_crown_color::grey": -0.029,
+      "has_crown_color::white": -0.238
+    },
+    "has_breast_color::black": {
+      "has_upperparts_color::grey": -0.141,
+      "has_underparts_color::black": 0.718,
+      "has_back_color::grey": -0.149,
+      "has_back_color::black": 0.466,
+      "has_head_pattern::capped": -0.104,
+      "has_breast_color::black": 1.0,
+      "has_throat_color::black": 0.64,
+      "has_bill_length::longer_than_head": -0.028,
+      "has_forehead_color::black": 0.388,
+      "has_nape_color::black": 0.484,
+      "has_belly_color::black": 0.725,
+      "has_primary_color::brown": -0.033,
+      "has_primary_color::grey": -0.172,
+      "has_primary_color::black": 0.461,
+      "has_leg_color::orange": -0.11,
+      "has_leg_color::black": 0.249,
+      "has_bill_color::yellow": -0.121,
+      "has_bill_color::orange": -0.054,
+      "has_bill_color::black": 0.213,
+      "has_crown_color::grey": -0.088,
+      "has_crown_color::white": -0.222
+    },
+    "has_throat_color::black": {
+      "has_upperparts_color::grey": -0.183,
+      "has_underparts_color::black": 0.533,
+      "has_back_color::grey": -0.19,
+      "has_back_color::black": 0.572,
+      "has_head_pattern::capped": -0.126,
+      "has_breast_color::black": 0.64,
+      "has_throat_color::black": 1.0,
+      "has_bill_length::longer_than_head": -0.084,
+      "has_forehead_color::black": 0.517,
+      "has_nape_color::black": 0.611,
+      "has_belly_color::black": 0.517,
+      "has_primary_color::brown": -0.01,
+      "has_primary_color::grey": -0.188,
+      "has_primary_color::black": 0.541,
+      "has_leg_color::orange": -0.106,
+      "has_leg_color::black": 0.145,
+      "has_bill_color::yellow": -0.133,
+      "has_bill_color::orange": -0.003,
+      "has_bill_color::black": 0.184,
+      "has_crown_color::grey": -0.102,
+      "has_crown_color::white": -0.286
+    },
+    "has_bill_length::longer_than_head": {
+      "has_upperparts_color::grey": -0.124,
+      "has_underparts_color::black": -0.051,
+      "has_back_color::grey": -0.085,
+      "has_back_color::black": -0.07,
+      "has_head_pattern::capped": -0.048,
+      "has_breast_color::black": -0.028,
+      "has_throat_color::black": -0.084,
+      "has_bill_length::longer_than_head": 1.0,
+      "has_forehead_color::black": -0.148,
+      "has_nape_color::black": -0.103,
+      "has_belly_color::black": -0.027,
+      "has_primary_color::brown": 0.082,
+      "has_primary_color::grey": -0.127,
+      "has_primary_color::black": -0.104,
+      "has_leg_color::orange": 0.022,
+      "has_leg_color::black": -0.063,
+      "has_bill_color::yellow": -0.043,
+      "has_bill_color::orange": 0.009,
+      "has_bill_color::black": -0.072,
+      "has_crown_color::grey": -0.071,
+      "has_crown_color::white": 0.027
+    },
+    "has_forehead_color::black": {
+      "has_upperparts_color::grey": -0.162,
+      "has_underparts_color::black": 0.326,
+      "has_back_color::grey": -0.172,
+      "has_back_color::black": 0.376,
+      "has_head_pattern::capped": 0.233,
+      "has_breast_color::black": 0.388,
+      "has_throat_color::black": 0.517,
+      "has_bill_length::longer_than_head": -0.148,
+      "has_forehead_color::black": 1.0,
+      "has_nape_color::black": 0.638,
+      "has_belly_color::black": 0.304,
+      "has_primary_color::brown": -0.095,
+      "has_primary_color::grey": -0.177,
+      "has_primary_color::black": 0.443,
+      "has_leg_color::orange": -0.029,
+      "has_leg_color::black": 0.14,
+      "has_bill_color::yellow": -0.216,
+      "has_bill_color::orange": 0.089,
+      "has_bill_color::black": 0.224,
+      "has_crown_color::grey": -0.203,
+      "has_crown_color::white": -0.478
+    },
+    "has_nape_color::black": {
+      "has_upperparts_color::grey": -0.124,
+      "has_underparts_color::black": 0.414,
+      "has_back_color::grey": -0.163,
+      "has_back_color::black": 0.461,
+      "has_head_pattern::capped": 0.127,
+      "has_breast_color::black": 0.484,
+      "has_throat_color::black": 0.611,
+      "has_bill_length::longer_than_head": -0.103,
+      "has_forehead_color::black": 0.638,
+      "has_nape_color::black": 1.0,
+      "has_belly_color::black": 0.388,
+      "has_primary_color::brown": -0.098,
+      "has_primary_color::grey": -0.146,
+      "has_primary_color::black": 0.476,
+      "has_leg_color::orange": 0.007,
+      "has_leg_color::black": 0.135,
+      "has_bill_color::yellow": -0.139,
+      "has_bill_color::orange": 0.106,
+      "has_bill_color::black": 0.171,
+      "has_crown_color::grey": -0.118,
+      "has_crown_color::white": -0.379
+    },
+    "has_belly_color::black": {
+      "has_upperparts_color::grey": -0.13,
+      "has_underparts_color::black": 0.806,
+      "has_back_color::grey": -0.116,
+      "has_back_color::black": 0.376,
+      "has_head_pattern::capped": -0.087,
+      "has_breast_color::black": 0.725,
+      "has_throat_color::black": 0.517,
+      "has_bill_length::longer_than_head": -0.027,
+      "has_forehead_color::black": 0.304,
+      "has_nape_color::black": 0.388,
+      "has_belly_color::black": 1.0,
+      "has_primary_color::brown": -0.042,
+      "has_primary_color::grey": -0.145,
+      "has_primary_color::black": 0.391,
+      "has_leg_color::orange": -0.11,
+      "has_leg_color::black": 0.291,
+      "has_bill_color::yellow": -0.108,
+      "has_bill_color::orange": -0.087,
+      "has_bill_color::black": 0.199,
+      "has_crown_color::grey": -0.068,
+      "has_crown_color::white": -0.17
+    },
+    "has_primary_color::brown": {
+      "has_upperparts_color::grey": -0.178,
+      "has_underparts_color::black": -0.031,
+      "has_back_color::grey": -0.149,
+      "has_back_color::black": -0.025,
+      "has_head_pattern::capped": -0.077,
+      "has_breast_color::black": -0.033,
+      "has_throat_color::black": -0.01,
+      "has_bill_length::longer_than_head": 0.082,
+      "has_forehead_color::black": -0.095,
+      "has_nape_color::black": -0.098,
+      "has_belly_color::black": -0.042,
+      "has_primary_color::brown": 1.0,
+      "has_primary_color::grey": -0.168,
+      "has_primary_color::black": -0.087,
+      "has_leg_color::orange": -0.077,
+      "has_leg_color::black": -0.046,
+      "has_bill_color::yellow": -0.097,
+      "has_bill_color::orange": -0.067,
+      "has_bill_color::black": 0.069,
+      "has_crown_color::grey": -0.05,
+      "has_crown_color::white": -0.107
+    },
+    "has_primary_color::grey": {
+      "has_upperparts_color::grey": 0.639,
+      "has_underparts_color::black": -0.153,
+      "has_back_color::grey": 0.593,
+      "has_back_color::black": -0.213,
+      "has_head_pattern::capped": -0.011,
+      "has_breast_color::black": -0.172,
+      "has_throat_color::black": -0.188,
+      "has_bill_length::longer_than_head": -0.127,
+      "has_forehead_color::black": -0.177,
+      "has_nape_color::black": -0.146,
+      "has_belly_color::black": -0.145,
+      "has_primary_color::brown": -0.168,
+      "has_primary_color::grey": 1.0,
+      "has_primary_color::black": -0.178,
+      "has_leg_color::orange": 0.012,
+      "has_leg_color::black": -0.05,
+      "has_bill_color::yellow": 0.124,
+      "has_bill_color::orange": 0.002,
+      "has_bill_color::black": 0.014,
+      "has_crown_color::grey": 0.36,
+      "has_crown_color::white": 0.131
+    },
+    "has_primary_color::black": {
+      "has_upperparts_color::grey": -0.215,
+      "has_underparts_color::black": 0.402,
+      "has_back_color::grey": -0.241,
+      "has_back_color::black": 0.581,
+      "has_head_pattern::capped": -0.065,
+      "has_breast_color::black": 0.461,
+      "has_throat_color::black": 0.541,
+      "has_bill_length::longer_than_head": -0.104,
+      "has_forehead_color::black": 0.443,
+      "has_nape_color::black": 0.476,
+      "has_belly_color::black": 0.391,
+      "has_primary_color::brown": -0.087,
+      "has_primary_color::grey": -0.178,
+      "has_primary_color::black": 1.0,
+      "has_leg_color::orange": -0.138,
+      "has_leg_color::black": 0.117,
+      "has_bill_color::yellow": -0.098,
+      "has_bill_color::orange": -0.056,
+      "has_bill_color::black": 0.178,
+      "has_crown_color::grey": -0.118,
+      "has_crown_color::white": -0.227
+    },
+    "has_leg_color::orange": {
+      "has_upperparts_color::grey": 0.055,
+      "has_underparts_color::black": -0.12,
+      "has_back_color::grey": 0.048,
+      "has_back_color::black": -0.127,
+      "has_head_pattern::capped": 0.171,
+      "has_breast_color::black": -0.11,
+      "has_throat_color::black": -0.106,
+      "has_bill_length::longer_than_head": 0.022,
+      "has_forehead_color::black": -0.029,
+      "has_nape_color::black": 0.007,
+      "has_belly_color::black": -0.11,
+      "has_primary_color::brown": -0.077,
+      "has_primary_color::grey": 0.012,
+      "has_primary_color::black": -0.138,
+      "has_leg_color::orange": 1.0,
+      "has_leg_color::black": -0.17,
+      "has_bill_color::yellow": 0.091,
+      "has_bill_color::orange": 0.32,
+      "has_bill_color::black": -0.019,
+      "has_crown_color::grey": -0.048,
+      "has_crown_color::white": 0.043
+    },
+    "has_leg_color::black": {
+      "has_upperparts_color::grey": -0.029,
+      "has_underparts_color::black": 0.289,
+      "has_back_color::grey": -0.059,
+      "has_back_color::black": 0.119,
+      "has_head_pattern::capped": 0.017,
+      "has_breast_color::black": 0.249,
+      "has_throat_color::black": 0.145,
+      "has_bill_length::longer_than_head": -0.063,
+      "has_forehead_color::black": 0.14,
+      "has_nape_color::black": 0.135,
+      "has_belly_color::black": 0.291,
+      "has_primary_color::brown": -0.046,
+      "has_primary_color::grey": -0.05,
+      "has_primary_color::black": 0.117,
+      "has_leg_color::orange": -0.17,
+      "has_leg_color::black": 1.0,
+      "has_bill_color::yellow": -0.148,
+      "has_bill_color::orange": -0.035,
+      "has_bill_color::black": 0.151,
+      "has_crown_color::grey": -0.013,
+      "has_crown_color::white": -0.031
+    },
+    "has_bill_color::yellow": {
+      "has_upperparts_color::grey": 0.158,
+      "has_underparts_color::black": -0.122,
+      "has_back_color::grey": 0.139,
+      "has_back_color::black": -0.067,
+      "has_head_pattern::capped": -0.094,
+      "has_breast_color::black": -0.121,
+      "has_throat_color::black": -0.133,
+      "has_bill_length::longer_than_head": -0.043,
+      "has_forehead_color::black": -0.216,
+      "has_nape_color::black": -0.139,
+      "has_belly_color::black": -0.108,
+      "has_primary_color::brown": -0.097,
+      "has_primary_color::grey": 0.124,
+      "has_primary_color::black": -0.098,
+      "has_leg_color::orange": 0.091,
+      "has_leg_color::black": -0.148,
+      "has_bill_color::yellow": 1.0,
+      "has_bill_color::orange": -0.105,
+      "has_bill_color::black": -0.15,
+      "has_crown_color::grey": -0.018,
+      "has_crown_color::white": 0.316
+    },
+    "has_bill_color::orange": {
+      "has_upperparts_color::grey": 0.041,
+      "has_underparts_color::black": -0.076,
+      "has_back_color::grey": 0.025,
+      "has_back_color::black": -0.001,
+      "has_head_pattern::capped": 0.146,
+      "has_breast_color::black": -0.054,
+      "has_throat_color::black": -0.003,
+      "has_bill_length::longer_than_head": 0.009,
+      "has_forehead_color::black": 0.089,
+      "has_nape_color::black": 0.106,
+      "has_belly_color::black": -0.087,
+      "has_primary_color::brown": -0.067,
+      "has_primary_color::grey": 0.002,
+      "has_primary_color::black": -0.056,
+      "has_leg_color::orange": 0.32,
+      "has_leg_color::black": -0.035,
+      "has_bill_color::yellow": -0.105,
+      "has_bill_color::orange": 1.0,
+      "has_bill_color::black": -0.176,
+      "has_crown_color::grey": -0.056,
+      "has_crown_color::white": -0.019
+    },
+    "has_bill_color::black": {
+      "has_upperparts_color::grey": 0.032,
+      "has_underparts_color::black": 0.204,
+      "has_back_color::grey": 0.003,
+      "has_back_color::black": 0.082,
+      "has_head_pattern::capped": 0.056,
+      "has_breast_color::black": 0.213,
+      "has_throat_color::black": 0.184,
+      "has_bill_length::longer_than_head": -0.072,
+      "has_forehead_color::black": 0.224,
+      "has_nape_color::black": 0.171,
+      "has_belly_color::black": 0.199,
+      "has_primary_color::brown": 0.069,
+      "has_primary_color::grey": 0.014,
+      "has_primary_color::black": 0.178,
+      "has_leg_color::orange": -0.019,
+      "has_leg_color::black": 0.151,
+      "has_bill_color::yellow": -0.15,
+      "has_bill_color::orange": -0.176,
+      "has_bill_color::black": 1.0,
+      "has_crown_color::grey": 0.049,
+      "has_crown_color::white": -0.094
+    },
+    "has_crown_color::grey": {
+      "has_upperparts_color::grey": 0.27,
+      "has_underparts_color::black": -0.097,
+      "has_back_color::grey": 0.292,
+      "has_back_color::black": -0.069,
+      "has_head_pattern::capped": -0.029,
+      "has_breast_color::black": -0.088,
+      "has_throat_color::black": -0.102,
+      "has_bill_length::longer_than_head": -0.071,
+      "has_forehead_color::black": -0.203,
+      "has_nape_color::black": -0.118,
+      "has_belly_color::black": -0.068,
+      "has_primary_color::brown": -0.05,
+      "has_primary_color::grey": 0.36,
+      "has_primary_color::black": -0.118,
+      "has_leg_color::orange": -0.048,
+      "has_leg_color::black": -0.013,
+      "has_bill_color::yellow": -0.018,
+      "has_bill_color::orange": -0.056,
+      "has_bill_color::black": 0.049,
+      "has_crown_color::grey": 1.0,
+      "has_crown_color::white": -0.084
+    },
+    "has_crown_color::white": {
+      "has_upperparts_color::grey": 0.203,
+      "has_underparts_color::black": -0.177,
+      "has_back_color::grey": 0.171,
+      "has_back_color::black": -0.195,
+      "has_head_pattern::capped": -0.238,
+      "has_breast_color::black": -0.222,
+      "has_throat_color::black": -0.286,
+      "has_bill_length::longer_than_head": 0.027,
+      "has_forehead_color::black": -0.478,
+      "has_nape_color::black": -0.379,
+      "has_belly_color::black": -0.17,
+      "has_primary_color::brown": -0.107,
+      "has_primary_color::grey": 0.131,
+      "has_primary_color::black": -0.227,
+      "has_leg_color::orange": 0.043,
+      "has_leg_color::black": -0.031,
+      "has_bill_color::yellow": 0.316,
+      "has_bill_color::orange": -0.019,
+      "has_bill_color::black": -0.094,
+      "has_crown_color::grey": -0.084,
+      "has_crown_color::white": 1.0
+    }
+  },
+  "selected": {
+    "seed": 0,
+    "attribute": "has_primary_color::grey",
+    "n_eligible": 21
+  },
+  "distractors": {
+    "visible": [
+      "has_primary_color::brown",
+      "has_underparts_color::black"
+    ],
+    "negative_control": "has_shape::duck-like"
+  }
+}

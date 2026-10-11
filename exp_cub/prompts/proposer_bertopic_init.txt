@@ -1,0 +1,44 @@
+We are monitoring for concepts that shift in prevalence in bird images that are captured over time. A concept has to be defined in terms of a yes/no question of the form "Does the bird in the image have...?". Pick concepts that are as specific as possible, without being too broad.
+
+We conducted a data-driven analysis using topic modeling (BERTopic) given visual descriptors that represent what was observed in the bird images. Below are learned topics that show the largest prevalence shifts. We show the top documents in each topic. Positive shift means the topic increased in prevalence, negative means it decreased:
+
+{topics_text}
+
+YOUR TASK:
+Based on the top topics, propose {max_meta_concepts} candidate concepts that corresponds to each topic or encompasses multiple topics. A concept should be a yes/no question that will formally define what concept likely shifted. Concepts should be defined to encompass the representative documents as much as possible.
+
+Do not propose concepts that are simply a union of two different concepts (e.g. "Does the bird in the image have a red head or long legs?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the bird in the image have feathers?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the bird in the image look unusual?" is not clearly defined because unusual may mean many different things). Do not propose a concept question that only represents a small subset of descriptors within a BERTopic-learned topic.
+
+For each concept, list the topic indices that were used to construct this concept. These topics will be excluded from future analyses once the concept is selected, to avoid redundant proposals.
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the topics (from largest to smallest shift).",
+  "concepts": [
+    {{"definition": "<QUESTION 1>", "topic_indices": [0]}},
+    {{"definition": "<QUESTION 2>", "topic_indices": [1, 2]}},
+    ...
+  ]
+}}
+
+Example answer:
+{{
+  "reasoning": "Step-by-step reasoning through the top shifted topics",
+  "concepts": [
+    {{
+      "definition": "Does the bird in the image have blue feathers?",
+      "topic_indices": [0]
+    }},
+    {{
+      "definition": "Does the bird in the image have a curved beak?",
+      "topic_indices": [2, 5]
+    }},
+    {{
+      "definition": "Does the bird in the image have a black tail?",
+      "topic_indices": [1]
+    }}
+  ]
+}}
+
+
+Final answer:

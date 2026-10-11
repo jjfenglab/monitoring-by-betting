@@ -1,0 +1,37 @@
+Extract all concepts mentioned this restaurant review. These will be candidates for a central dictionary of concepts for characterizing restaurant reviews, and will eventually be input features to a concept bottleneck model for monitoring changes in reviews written over time. Only list factors explicitly mentioned in the review. Do not infer or add details unless explicitly stated.
+
+For each concept mentioned in the review, provide:
+1. A word or phrase to represent that concept (1-2 words)
+2. Synonyms or alternative phrasings
+3. Broader generalizations that capture similar concepts
+
+Requirements:
+- Each descriptor should be $\leq$2 words. One word descriptors are encouraged.
+- The descriptor should state distinguishing features. Focus on factors relevant to the dining experience.
+- List specific terms, synonyms, and increasingly general concepts.
+- Separate items with commas
+
+Review(s):
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the review text.
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Primary descriptor, Synonym1, Synonym2, Broader category",
+        "Primary descriptor, Alternative phrasing, More general concept",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Ugly decor, Decor, Decoration, Atmosphere",
+        "Difficult to find, Location",
+        ...
+    ]
+}
