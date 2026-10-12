@@ -12,11 +12,15 @@ final/updated note -- and --text-mode picks what gets embedded and monitored:
                        "<ai_draft>...</ai_draft><final_note>...</final_note>"
   diff               : only the edit itself -- diff-match-patch's changed spans
                        between draft and final, tagged and joined by " ... ":
-                       "[-removed-] ... {+added+}". Unchanged text is dropped
-                       entirely, so a note with no clinician edits produces an
-                       empty string.
+                       "<del>removed</del> ... <ins>added</ins>". Unchanged text is
+                       dropped entirely, so a note with no clinician edits produces
+                       an empty string.
   draft_plus_diff    : the full draft followed by the diff:
-                       "<ai_draft>...</ai_draft><changes>[-removed-] ... {+added+}</changes>"
+                       "<ai_draft>...</ai_draft><changes><del>...</del> ... <ins>...</ins></changes>"
+  draft_diff_inline  : the full draft with character-level <del>/<ins> edits inline
+  draft_diff_inline_word : the same, but diffed word by word
+  diff_structured    : the draft, then each edit numbered as BEFORE/AFTER lines with
+                       3 words of context on each side
 
 Runs once per (experiment, text_mode); every downstream cell for that
 text_mode loads the resulting cached files.
@@ -96,8 +100,8 @@ def diff_inline_word(draft: str, final: str) -> str:
     """Full text with changes marked inline (word-level).
 
     Uses difflib.SequenceMatcher for true word-level diffing.
-    E.g., "2/26/26" -> "2/20/26" becomes "[-2/26/26-] [+2/20/26+]" instead of
-    character-level "2/2[-6-][+0+]/26".
+    E.g., "2/26/26" -> "2/20/26" becomes "<del>2/26/26</del> <ins>2/20/26</ins>"
+    instead of character-level "2/2<del>6</del><ins>0</ins>/26".
     """
     draft_words = re.findall(r'\S+', draft)
     final_words = re.findall(r'\S+', final)

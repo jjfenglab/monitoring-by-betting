@@ -59,10 +59,6 @@ EMBED_LOCAL_ONLY = True
 N_NULL_SEEDS      = 0
 N_SEEDS           = 2
 SEED_CAPS = {}
-HISTORY_SAMPLE_SIZES = {
-    "oracle_random_pool": [None, 25, 50, 100, 200],
-    "bertopic_llm": [None]
-}
 
 SHIFT_SEED_OFFSET = 10000
 PRE_P1_FRACTION   = 0.0
@@ -83,7 +79,6 @@ CANDIDATE_STEP = 1
 LAM            = 0.5
 ALPHA          = 0.05
 N_BOOTSTRAP    = 1000
-MAX_CENSOR_RATE = 0.10
 SAVE_MATRIX_SNAPSHOTS = True
 
 MAX_M_STATISTIC = max(NULL_LEN, SHIFT_LEN)
@@ -92,8 +87,6 @@ THRESHOLD_MAX  = MAX_M_STATISTIC
 N_THRESHOLDS   = int((THRESHOLD_MAX - THRESHOLD_MIN) / 5 + 1)
 
 MIN_BLOCK      = 10
-N_DIRS         = 50
-SW_P           = 2
 
 CHANGEPOINT_LEARNER_NAMES = [
     "mean_shift",
@@ -154,12 +147,6 @@ CLASSIFIERS        = [
     "logistic",
 ]
 MAX_UNPENALIZED_DIM = 10
-CLASSIFIER_CV      = False
-CV_FOLDS           = 3
-CV_N_CS            = 10
-
-
-REAL_QUERY_BUDGET_CEILING = 500
 
 CTM_SCORERS = [
     "cosine_centroid",
@@ -176,12 +163,8 @@ CTM_POOL_VARIANT = "embedding-oracle"
 
 THRESHOLD_MAX_PLOT = THRESHOLD_MAX
 THRESHOLD_MAX_PLOT_NULL = MAX_STEPS_NULL - N_BURN_IN
-PLOT_COST_LEVELS = {
-    "default": [],
-}
 PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
-                 "oracle_variant", "sae_variant", "variant", "search_all_sizes",
-                 "llm_model", "history_sample_size"]
+                 "oracle_variant", "sae_variant", "variant", "search_all_sizes"]
 
 
 def _mirror_outdir(outdir, subdir):
@@ -459,11 +442,6 @@ nest.add(
     lambda c: LLM_MODELS if c["concept_learner_type"] in LLM_LEARNER_TYPES else ["none"],
     label_func=lambda c: f"llm_{c.replace('/', '_').replace('.', '_')}")
 
-nest.add(
-    "history_sample_size",
-    lambda c: HISTORY_SAMPLE_SIZES.get(c["concept_learner_type"], [None]),
-    label_func=lambda c: "" if c is None else f"hss_{c}")
-
 @nest.add_target_with_env(localenv)
 def create_scl_config(env, outdir, c):
     targets = [path_join(outdir, "scl_config.json")]
@@ -484,22 +462,13 @@ def create_scl_config(env, outdir, c):
         "--seed",                      12345,
         "--n-init-concepts",           n_init_concepts,
         "--n-new-concepts-per-update", n_new,
-        "--real-query-budget-ceiling", REAL_QUERY_BUDGET_CEILING,
         "--max-unpenalized-dim",       MAX_UNPENALIZED_DIM,
-        "--cv-folds",                  CV_FOLDS,
-        "--cv-n-cs",                   CV_N_CS,
         "--cache-mode",                "per_stream",
         "--classifier-type",          c["classifier"],
     ]
 
-    if CLASSIFIER_CV:
-        cmd.append("--classifier-cv")
-
     if c["search_all_sizes"]:
         cmd.append("--search-all-sizes")
-
-    if c["history_sample_size"] is not None:
-        cmd += ["--history-sample-size", c["history_sample_size"]]
 
     if _is_sae(c):
         sources = [c["train_sae"][0], c["assemble_pools"][2], c["assemble_pools"][3]]
@@ -561,7 +530,6 @@ def run_monitor(env, outdir, c):
         path_join(outdir, "result_whiten.pkl"),
         path_join(outdir, "run_whiten.log"),
         path_join(outdir, "debug_whiten.csv"),
-        path_join(outdir, "concept_lifecycle_whiten.csv"),
         path_join(outdir, "concept_episodes_whiten.csv"),
     ]
     cmd = [
@@ -575,20 +543,17 @@ def run_monitor(env, outdir, c):
         "--max-m-statistic",     MAX_M_STATISTIC if c["concept_learner_type"] == "bertopic_llm" else (MAX_M_STATISTIC * 3),
         "--candidate-step",      CANDIDATE_STEP,
         "--min-block",           MIN_BLOCK,
-        "--n-dirs",              N_DIRS,
-        "--p",                   SW_P,
         "--embeddings-path",     "${SOURCES[0]}",
         "--stream-csv",          "${SOURCES[1]}",
         "--out",                 "${TARGETS[0]}",
         "--log",                 "${TARGETS[1]}",
         "--debug-csv",           "${TARGETS[2]}",
-        "--concept-lifecycle-csv", "${TARGETS[3]}",
-        "--concept-episodes-csv",  "${TARGETS[4]}",
+        "--concept-episodes-csv", "${TARGETS[3]}",
     ]
     save_keyphrases = c["concept_learner_type"] in LLM_LEARNER_TYPES
     if save_keyphrases:
         targets.append(path_join(outdir, "keyphrase_outputs.csv"))
-        cmd += ["--keyphrase-csv ${TARGETS[5]}"]
+        cmd += ["--keyphrase-csv ${TARGETS[4]}"]
     
     if c["concept_learner_type"] == "sae_online":
         targets.append(path_join(outdir, "sae_final.pt"))
@@ -934,7 +899,6 @@ def ctm_cell_summary(env, outdir, c):
         "--threshold-max",   THRESHOLD_MAX,
         "--n-thresholds",    N_THRESHOLDS,
         "--n-bootstrap",     N_BOOTSTRAP,
-        "--max-censor-rate", MAX_CENSOR_RATE,
         "--config-json",     f"${{SOURCES[{n_result_pkls}]}}",
         "--out-csv",         "${TARGETS[0]}",
         "--log",             "${TARGETS[1]}",
@@ -987,7 +951,6 @@ def final_plot(env, outdir, c):
         "--csv",             "${SOURCES[0]}",
         "--ctm-csv",         "${SOURCES[1]}",
         "--n-burn-in",       N_BURN_IN,
-        "--max-censor-rate", MAX_CENSOR_RATE,
         "--out-nominal",     "${TARGETS[0]}",
         "--out-calibration", "${TARGETS[1]}",
         "--n-pre",           N_PRE,
@@ -999,25 +962,5 @@ def final_plot(env, outdir, c):
         "--title-prefix",    c["shift_aspect"],
         "--log",             "${TARGETS[2]}",
         "--baseline", "family=CTM",
-    ]
-    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
-
-
-@nest.add_target_with_env(localenv)
-def history_curves_plot(env, outdir, c):
-    sources = [c["aggregate_all"][0]]
-    targets = [
-        path_join(outdir, "history_curves.png"),
-        path_join(outdir, "history_curves.log"),
-    ]
-    cmd = [
-        "python", "src/plot_history_curves.py",
-        "--csv",           "${SOURCES[0]}",
-        "--out",           "${TARGETS[0]}",
-        "--n-burn-in",     N_BURN_IN,
-        "--n-pre",         N_PRE,
-        "--threshold-max", THRESHOLD_MAX_PLOT_NULL,
-        "--title-prefix",  c["shift_aspect"],
-        "--log",           "${TARGETS[1]}",
     ]
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))

@@ -153,7 +153,6 @@ class RankedConceptSelector:
         prompt = self._prompt_iter_template.format(
             meta_concepts=meta_concepts,
             top_features_text=top_features_text,
-            # TODO: fix hack
             max_meta_concepts=2,
             num_concepts_fixed=len(extract_feature_names),
             num_concepts=len(extract_feature_names)+1,
@@ -165,8 +164,9 @@ class RankedConceptSelector:
 class MockConceptState:
     """Shared state between MockConceptSelector and MockSparseFeatureExtractor.
 
-    MockConceptSelector writes informative_flags when proposing concepts;
-    MockSparseFeatureExtractor reads them to decide oracle vs noise labelling.
+    MockConceptSelector stamps each proposed concept with its role (strength s/w/noise,
+    is_informative) and appends the flag to informative_flags; MockSparseFeatureExtractor
+    labels cells from the concept's strength.
 
     field(default_factory=...) is required for mutable defaults in dataclasses —
     without it, all instances would share the same list/generator object.
@@ -195,8 +195,8 @@ class MockConceptState:
 class MockConceptSelector:
     """Concept selector that returns oracle concept dicts without calling an LLM.
 
-    Draws informative flags at proposal time and stores them in a shared MockConceptState.
-    The flags are later read by MockSparseFeatureExtractor to decide oracle vs noise labelling.
+    Stamps each concept's role at proposal time and records it in the shared
+    MockConceptState; MockSparseFeatureExtractor labels cells from the concept's strength.
     """
 
     def __init__(self, state: MockConceptState):

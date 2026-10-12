@@ -10,7 +10,6 @@ import pandas as pd
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.pipeline import Pipeline
 
 # Lazy: imported inside methods only (real LLM mode)
 if TYPE_CHECKING:
@@ -18,7 +17,6 @@ if TYPE_CHECKING:
     from HACHI.src.ensemble_trainer.concept_generator import StandardConceptGenerator
 
 from .feature_extractors import SparseFeatureExtractor, SparseExtractionMatrix
-from .concept_lifecycle import ConceptLifecycleRow
 
 
 class SequentialConceptLearner(abc.ABC):
@@ -46,15 +44,8 @@ class SequentialConceptLearner(abc.ABC):
         n_burn_in: int = 30,
         n_init_concepts: int = 10,
         n_new_concepts_per_update: int = 2,
-        real_query_budget_ceiling: int | None = None,
         text_column: str = "text",
         seed: int = 0,
-        freeze_time: int | None = None,
-        removal_rule: str = "none",
-        rf_importance: str = "permutation",
-        greedy_group_size: int = 1,
-        greedy_max_group_candidates: int = 50,
-        removal_n_jobs: int = 1,
     ):
         """
         Args:
@@ -75,27 +66,6 @@ class SequentialConceptLearner(abc.ABC):
         self.n_burn_in = n_burn_in
         self.n_init_concepts = n_init_concepts
         self.n_new_concepts_per_update = n_new_concepts_per_update
-        # Fixed-size regime: once len(history) > freeze_time, each step removes the
-        # n_new weakest concepts (by removal_rule) after testing (Option Y). The step
-        # AT freeze_time proposes the initial batch and removes nothing, so the pool
-        # rests at n_init. None = off.
-        assert removal_rule in ("none", "importance", "greedy", "random"), (
-            f"Unknown removal_rule: {removal_rule!r}"
-        )
-        assert rf_importance in ("permutation", "impurity"), (
-            f"Unknown rf_importance: {rf_importance!r}"
-        )
-        assert greedy_group_size in (1, n_new_concepts_per_update), (
-            f"greedy_group_size must be 1 or n_new_concepts_per_update, got {greedy_group_size}"
-        )
-        self.freeze_time = freeze_time
-        self.removal_rule = removal_rule
-        self.rf_importance = rf_importance
-        self.greedy_group_size = greedy_group_size
-        self.greedy_max_group_candidates = greedy_max_group_candidates
-        self.removal_n_jobs = removal_n_jobs
-        # Real mode only: cap on expected per-step extraction queries (None = uncapped, mock).
-        self.real_query_budget_ceiling = real_query_budget_ceiling
         self.text_column = text_column
         self.seed = seed
 
@@ -110,8 +80,8 @@ class SequentialConceptLearner(abc.ABC):
         self.calib_df = calib_df.copy()
         self.n_calib = calib_df.shape[0]
         self.last_fit_converged: bool = True  # set each refit; read for debug diagnostics
-        # Per-step fit-size counters for the timing audit; read by _record_debug.
-        # Fit-based keys stay NaN during burn-in (no fit); keyphrase_row_idx is set every step.
+        # Per-step debug values; AdaptiveMonitoring._record_debug reads scan_statistic,
+        # selected_subset and the sae_* keys. Fit-based keys stay NaN during burn-in (no fit); keyphrase_row_idx is set every step.
         self.last_fit_debug: dict = {}
 
         # Every concept dict carries a stable "id" (from _next_concept_id) that rides
@@ -120,14 +90,9 @@ class SequentialConceptLearner(abc.ABC):
         self.last_added_concepts: List[Dict] = []     # this step's proposals (debug)
         self.last_removed_concepts: List[Dict] = []   # this step's removals (debug)
 
-        # Lifecycle diagnostics. Attached by the monitor after construction; None
-        # means the SCL records nothing (identity, or the artifact is disabled).
-        # `_next_candidate_id` numbers scored removal candidates across the run.
+        # concept_episodes.csv writer. Attached by run_monitor after construction; None
+        # means the SCL records nothing (the artifact is not requested).
         self.episode_recorder = None
-        self.removal_recorder = None
-        self._next_candidate_id: int = 0
-        # concept_id -> candidate_id of the candidate that removed it, this step.
-        self.last_removal_candidate_id: dict[int, int] = {}
 
         # Extract keyphrases for calibration pool at init
         self.calib_df = self._ensure_keyphrases(self.calib_df)
@@ -209,9 +174,7 @@ class SequentialConceptLearner(abc.ABC):
             "keyphrase_row_idx": curr_n_obs - 1,
             "n_keyphrase_rows": len(pending),
             "n_obs_scl": curr_n_obs,
-            "imputer_n_train": float("nan"),
             "clf_n_train": float("nan"),
-            "imputer_best_config": None,
         }
         return data_df
 
@@ -280,8 +243,7 @@ class SequentialConceptLearner(abc.ABC):
             logging.info(f"NEW concept {c['id']}: {c['concept']}")
             if self.episode_recorder is not None:
                 self.episode_recorder.open_episode(
-                    concept_id=c["id"], concept=c["concept"],
-                    proposed_t=curr_n_obs, removal_rule=self.removal_rule,
+                    concept_id=c["id"], concept=c["concept"], proposed_t=curr_n_obs,
                 )
 
         for concept in self.all_concepts:
@@ -293,7 +255,7 @@ class SequentialConceptLearner(abc.ABC):
         """Fit `self.classifier` on the given design matrix; record convergence.
 
         Convergence warnings are captured (record=True), never printed; the flag
-        reaches debug.csv (classifier_converged / restricted_fit_converged)."""
+        reaches debug.csv (classifier_converged)."""
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always", ConvergenceWarning)
             self.classifier.fit(features, y)
@@ -335,13 +297,11 @@ class SequentialConceptLearner(abc.ABC):
         """p_null for the bet L = 1 + lam * (p_t - p_null), scored on calibration rows."""
 
     def linear_coef(self) -> np.ndarray | None:
-        """The fitted linear coefficients (per concept), or None for non-linear models.
+        """The fitted linear coefficients (per concept), or None before the first fit.
 
-        Logistic classifiers are wrapped in a Pipeline([scaler, LR]); reach the final
-        estimator for `coef_`. Random forests have no `coef_`, so this returns None.
+        The classifier is a Pipeline([scaler, LR]); reach the final estimator for `coef_`.
         """
-        final = self.classifier[-1] if isinstance(self.classifier, Pipeline) else self.classifier
-        return getattr(final, "coef_", None)
+        return getattr(self.classifier[-1], "coef_", None)
 
     def _extractions_to_dict(self, feature_matrix: np.ndarray) -> Dict[str, np.ndarray]:
         """Convert feature matrix to extractions dict format expected by concept generators."""
@@ -367,8 +327,9 @@ class SequentialConceptLearner(abc.ABC):
     def append_observed_concepts(self, observed_row: np.ndarray) -> None:
         """Append a matrix row carrying x_t's frozen annotations (carry-forward).
 
-        Called by the monitor after the e-detector decision, so x_t's scoring-time
-        annotations are reused when it becomes history (not re-annotated on old columns).
+        Called from annotate_observations() when x_t is scored (before the bet), so x_t's
+        scoring-time annotations are reused when it becomes history (not re-annotated on
+        old columns).
         """
         n_rows, n_cols = self.sparse_concept_matrix.shape
         self.sparse_concept_matrix.resize((n_rows + 1, n_cols))
@@ -407,73 +368,6 @@ class SequentialConceptLearner(abc.ABC):
             f"history matrix cols {self.sparse_concept_matrix.shape[1]} != concepts {C}"
         )
 
-    # def build_lifecycle_rows(
-    #     self, t: int, current_observed: np.ndarray, remove_set: set[int],
-    # ) -> tuple[ConceptLifecycleRow, ...]:
-    #     """Snapshot the active concept set as long-form rows, one per concept.
-
-    #     Called by the monitor after x_t is annotated and after the step's classifier fit.
-    #     `remove_set` are the local indices that were removed this step (subset selection).
-
-    #     NOT pure: each row also increments its concept's episode active-step count
-    #     (episode_recorder.note_active), so n_steps_active counts the rows built here.
-    #     """
-    #     concepts = self.all_concepts
-    #     n_concepts = len(concepts)
-    #     current_observed = np.asarray(current_observed).reshape(-1)
-    #     assert current_observed.size == n_concepts
-
-    #     coefficients = self.linear_coef()
-    #     if coefficients is not None:
-    #         coefficients = np.ravel(coefficients)
-    #         assert coefficients.size == n_concepts
-
-    #     history_observed = self.sparse_concept_matrix.get_filled_entries()
-    #     calibration_observed = self.calib_concept_matrix.get_filled_entries()
-    #     assert history_observed.shape[1] == n_concepts
-    #     assert calibration_observed.shape[1] == n_concepts
-    #     history_counts = history_observed.sum(axis=0)
-    #     calibration_counts = calibration_observed.sum(axis=0)
-    #     history_n = history_observed.shape[0]
-    #     calibration_n = calibration_observed.shape[0]
-
-    #     new_ids = {c["id"] for c in self.last_added_concepts}
-    #     rows = []
-    #     for j, concept in enumerate(concepts):
-    #         annotation = current_observed[j]
-    #         if self.episode_recorder is not None:
-    #             self.episode_recorder.note_active(concept["id"])
-    #         rows.append(ConceptLifecycleRow(
-    #             t=t,
-    #             scl_variant=self.scl_variant,
-    #             removal_rule=self.removal_rule,
-    #             fit_index=j,
-    #             concept_id=concept["id"],
-    #             proposed_t=concept["proposed_t"],
-    #             new_this_step=concept["id"] in new_ids,
-    #             classifier_coefficient=(
-    #                 None if coefficients is None else float(coefficients[j])
-    #             ),
-    #             removed_this_step=j in remove_set,
-    #             removal_candidate_id=self.last_removal_candidate_id.get(concept["id"]),
-    #             current_observed=not np.isnan(annotation),
-    #             current_annotation=(
-    #                 None if np.isnan(annotation) else float(annotation)
-    #             ),
-    #             history_n=history_n,
-    #             history_n_observed=int(history_counts[j]),
-    #             history_observed_rate=(
-    #                 float(history_counts[j] / history_n) if history_n else np.nan
-    #             ),
-    #             calibration_n=calibration_n,
-    #             calibration_n_observed=int(calibration_counts[j]),
-    #             calibration_observed_rate=(
-    #                 float(calibration_counts[j] / calibration_n)
-    #                 if calibration_n else np.nan
-    #             ),
-    #         ))
-    #     return tuple(rows)
-
 
 class SubsetScanSCL(SequentialConceptLearner):
     """Subset-scan concept selection: joint feature selection and changepoint detection.
@@ -488,13 +382,12 @@ class SubsetScanSCL(SequentialConceptLearner):
     4. Filter concepts to the selected subset
     5. Fit classifier on selected concepts
 
-    All observations are fully annotated - no imputation or budget-based sampling needed.
+    All observations are fully annotated.
 
-    Uses two feature extractors:
-    - sparse_feature_extractor (batched): annotates multiple concepts per observation
-      for history rows (efficient for bulk annotation)
-    - bettor_feature_extractor (single-concept): annotates one concept per observation
-      for calibration and x_t (consistent conditions for the e-process bet)
+    Takes two feature extractors: sparse_feature_extractor annotates history cells and
+    bettor_feature_extractor annotates calibration rows and x_t (defaults to the same
+    one). The LLM arm passes the same single-concept extractor for both, so every cell
+    is annotated under identical conditions.
     """
 
     scl_variant: str = "subset_scan"
@@ -508,7 +401,6 @@ class SubsetScanSCL(SequentialConceptLearner):
         subset_size: int | None = None,
         candidate_step: int = 1,
         search_all_sizes: bool = False,
-        history_sample_size: int | None = None,
         **kwargs,
     ):
         """
@@ -521,30 +413,13 @@ class SubsetScanSCL(SequentialConceptLearner):
             subset_size: Number of concepts K to select. Defaults to n_init_concepts.
             candidate_step: Grid step for changepoint candidate splits.
             search_all_sizes: if True, search subset sizes 1..K with penalty (stat - k).
-            history_sample_size: if set, each update proposes, annotates, scans and fits on
-                a fresh uniform sample of this many history rows (all rows while
-                t + 1 <= N), which makes annotation cost linear in t. None = full history.
             **kwargs: shared SequentialConceptLearner params
         """
-        kwargs["removal_rule"] = "none"
         super().__init__(**kwargs)
 
         assert min_block >= 2, "min_block must be >= 2"
         self.min_block = min_block
         self.concept_projector = concept_projector
-        assert history_sample_size is None or concept_projector is None, (
-            "history_sample_size only applies to annotation-based learners"
-        )
-        assert history_sample_size is None or history_sample_size >= 2 * min_block, (
-            f"history_sample_size {history_sample_size} leaves no room for min_block {min_block}"
-        )
-        self.history_sample_size = history_sample_size
-        # Own generator so the None path leaves the global stream (proposer, extractor) untouched.
-        self._sample_rng = np.random.default_rng(self.seed)
-        # Cumulative (row, concept) cells requested from the annotators; cache-independent.
-        self.n_annotation_cells_history = 0
-        self.n_annotation_cells_calib = 0
-        self.n_annotation_cells_xt = 0
 
         self.bettor_feature_extractor = (
             bettor_feature_extractor if bettor_feature_extractor is not None
@@ -588,11 +463,8 @@ class SubsetScanSCL(SequentialConceptLearner):
         n_prev_obs = self.sparse_concept_matrix.shape[0]
         n_prev_concepts = self.n_concepts
 
-        # 0. TODO: REMOVE? Under subsampling, this step's rows; the retained concepts are completed on
-        # them first so the proposer, scan and classifier all see one complete submatrix.
         # 0. For keyphrase learning, only use rows where the keyphrase is non-empty
         rows = np.where(data_df.llm_output != "")[0]
-        # rows = self._sample_rows(curr_n_obs)
         if rows is not None:
             self.sparse_concept_matrix.update_from_sparse(
                 self._get_annotations(data_df, n_prev_concepts=n_prev_concepts,
@@ -615,7 +487,7 @@ class SubsetScanSCL(SequentialConceptLearner):
         concept_features = self.get_concept_features(structured_history)
         if rows is not None:
             concept_features = concept_features[rows]
-            assert not np.isnan(concept_features).any(), "sampled rows must be fully annotated"
+            assert not np.isnan(concept_features).any(), "selected rows must be fully annotated"
 
         # 3. Run subset scan to jointly select best K concepts AND t_hat
         # 3A. Estimate best subset and t_hat (split is in sample units; t_hat in time units)
@@ -624,9 +496,6 @@ class SubsetScanSCL(SequentialConceptLearner):
         logging.info(f"ESTIMATED T-HAT {t_hat}")
         logging.info(concept_features[:split].mean(axis=0))
         logging.info(concept_features[split:].mean(axis=0))
-        logging.info(f"ORACLE T-HAT")
-        logging.info(concept_features[:100].mean(axis=0))
-        logging.info(concept_features[100:].mean(axis=0))
         for c_idx, c in enumerate(self.all_concepts):
             logging.info(f"BEST {c_idx}, {c_idx in best_subset}, {c}")
         assert t_hat is not None, "subset scan must return valid t_hat post-burn-in"
@@ -651,21 +520,12 @@ class SubsetScanSCL(SequentialConceptLearner):
         self.last_fit_debug["clf_n_train"] = selected_features[fit_rows].shape[0]
 
         # Store debug info
-        self.last_fit_debug["n_annotation_cells_history"] = self.n_annotation_cells_history
         self.last_fit_debug["scan_statistic"] = stat
         self.last_fit_debug["selected_subset"] = (
             ";".join(map(str, best_subset)) if best_subset is not None else ""
         )
 
         return data_df
-
-    def _sample_rows(self, curr_n_obs: int) -> np.ndarray | None:
-        """This step's history rows under subsampling: a sorted uniform draw without
-        replacement of `history_sample_size` rows out of 0..t, or None for full history."""
-        n = self.history_sample_size
-        if n is None or curr_n_obs <= n:
-            return None
-        return np.sort(self._sample_rng.choice(curr_n_obs, size=n, replace=False))
 
     def _get_annotations(
         self,
@@ -689,10 +549,6 @@ class SubsetScanSCL(SequentialConceptLearner):
             keep[rows] = True
             dense[~keep, :] = 0
 
-        if use_bettor_extractor:
-            self.n_annotation_cells_calib += int(dense.sum())
-        else:
-            self.n_annotation_cells_history += int(dense.sum())
         extract_fn = self._extract_bettor_cells if use_bettor_extractor else self._extract_masked_cells
         return extract_fn(data_df, sp.lil_array(dense))
 
@@ -716,7 +572,6 @@ class SubsetScanSCL(SequentialConceptLearner):
             "y_true": obs_row.get("y_true"),
         }])
         dense = np.ones((1, C), dtype=np.int8)  # annotate ALL concepts
-        self.n_annotation_cells_xt += C
         annot_new = self._extract_bettor_cells(frame, sp.lil_array(dense)).to_dense()
         logging.info(f"NEW OBSERVATION #concepts {C}: {annot_new}")
         self.append_observed_concepts(annot_new[0])

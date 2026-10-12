@@ -226,9 +226,6 @@ CANDIDATE_STEP = 1
 LAM = 0.5
 ALPHA = 0.05
 N_BOOTSTRAP = 1000
-# Curve bands (and the calibration line) stop where more than this fraction of null
-# runs never alarm (ARL0) or of shift runs never alarm (EDD).
-MAX_CENSOR_RATE = 0.10
 # Per-step annotated matrix CSVs for the first 10 streams of each cell. Off here
 SAVE_MATRIX_SNAPSHOTS = False
 # Run lengths are reported net of burn-in, so the pre-change window is N_PRE - N_BURN_IN
@@ -241,8 +238,6 @@ N_THRESHOLDS = int((THRESHOLD_MAX - THRESHOLD_MIN) / 5 + 1)
 # never truncated -- aggregate_cell.py drops any threshold above it.
 MAX_M_STATISTIC = SHIFT_LEN
 MIN_BLOCK = 10
-N_DIRS = 50  # Number of random directions in sliced wasserstein
-SW_P = 2  # L_p distance in sliced wasserstein
 
 CHANGEPOINT_LEARNER_NAMES = [
     "mean_shift",
@@ -268,7 +263,7 @@ CONCEPT_LEARNER_TYPES = [
 
 
 def _is_sae(c):
-    """Both SAE arms share the checkpoint, the passthrough imputer, and removal is disabled."""
+    """Both SAE arms (frozen and online) share the checkpoint."""
     return c["concept_learner_type"].startswith("sae")
 
 LLM_LEARNER_TYPES = ["bertopic_llm"]
@@ -281,7 +276,7 @@ MOCK_NOISE_RATE = 0.3  # informative concept: P(1 | post) = 0.7, P(1 | pre) = 0.
 # bertopic_llm: number of BERTopic topics (can exceed N_INIT_CONCEPTS)
 N_BERTOPIC_TOPICS = 25
 
-# Only subset_scan variant is used - full annotation, no imputation
+# Only subset_scan variant is used - full annotation
 SCL_VARIANT = "subset_scan"
 
 CLASSIFIERS = [
@@ -290,13 +285,9 @@ CLASSIFIERS = [
 # <= this many classifier inputs -> unpenalized fit; above -> ridge. identity feeds
 # 512 CLIP dims (ridge); concept arms feed a handful (unpenalized).
 MAX_UNPENALIZED_DIM = 10
-CLASSIFIER_CV = False
-CV_FOLDS = 3
-CV_N_CS = 10
 
 # --- LLM-arm cost controls ---
 LLM_CP_LEARNERS = ("mean_shift",)
-REAL_QUERY_BUDGET_CEILING = 500
 
 # --- CTM baseline (conformal test martingale) parameters ---
 CTM_SCORERS = [
@@ -329,7 +320,6 @@ PLOT_HUE_COLS = [
     "sae_variant",
     "variant",
     "search_all_sizes",
-    "llm_model",
 ]
 
 
@@ -712,14 +702,8 @@ def create_scl_config(env, outdir, c):
         n_init_concepts,
         "--n-new-concepts-per-update",
         n_new,
-        "--real-query-budget-ceiling",
-        REAL_QUERY_BUDGET_CEILING,
         "--max-unpenalized-dim",
         MAX_UNPENALIZED_DIM,
-        "--cv-folds",
-        CV_FOLDS,
-        "--cv-n-cs",
-        CV_N_CS,
         "--cache-mode",
         (
             "per_stream"
@@ -729,9 +713,6 @@ def create_scl_config(env, outdir, c):
         "--classifier-type",
         c["classifier"],
     ]
-
-    if CLASSIFIER_CV:
-        cmd.append("--classifier-cv")
 
     if c["search_all_sizes"]:
         cmd.append("--search-all-sizes")
@@ -818,7 +799,6 @@ def run_monitor(env, outdir, c):
         path_join(outdir, "result_whiten.pkl"),
         path_join(outdir, "run_whiten.log"),
         path_join(outdir, "debug_whiten.csv"),
-        path_join(outdir, "concept_lifecycle_whiten.csv"),
         path_join(outdir, "concept_episodes_whiten.csv"),
     ]
     cmd = [
@@ -842,10 +822,6 @@ def run_monitor(env, outdir, c):
         CANDIDATE_STEP,
         "--min-block",
         MIN_BLOCK,
-        "--n-dirs",
-        N_DIRS,
-        "--p",
-        SW_P,
         "--embeddings-path",
         "${SOURCES[0]}",
         "--stream-csv",
@@ -856,16 +832,14 @@ def run_monitor(env, outdir, c):
         "${TARGETS[1]}",
         "--debug-csv",
         "${TARGETS[2]}",
-        "--concept-lifecycle-csv",
-        "${TARGETS[3]}",
         "--concept-episodes-csv",
-        "${TARGETS[4]}",
+        "${TARGETS[3]}",
     ]
     save_keyphrases = c["concept_learner_type"] in LLM_LEARNER_TYPES
     if save_keyphrases:
         targets.append(path_join(outdir, "keyphrase_outputs.csv"))
         cmd += [
-            "--keyphrase-csv ${TARGETS[5]}",
+            "--keyphrase-csv ${TARGETS[4]}",
         ]
 
     if c["concept_learner_type"] == "sae_online":
@@ -1436,8 +1410,6 @@ def final_plot(env, outdir, c):
             "${SOURCES[1]}",
             "--n-burn-in",
             N_BURN_IN,
-            "--max-censor-rate",
-            MAX_CENSOR_RATE,
             "--out-nominal",
             "${TARGETS[0]}",
             "--out-calibration",

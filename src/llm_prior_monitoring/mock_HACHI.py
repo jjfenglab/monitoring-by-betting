@@ -14,9 +14,7 @@ class MockConceptGenerator:
     Delegates concept proposal entirely to MockConceptSelector.query_for_new_cand,
     bypassing HACHI's get_word_count_data and data split steps.
 
-    Has a minimal config namespace so SequentialConceptLearner can sync
-    num_greedy_holdout and max_meta_concepts without requiring a full EnsembleConfig.
-    train_frac=1.0 satisfies SequentialConceptLearner's assertion.
+    Carries a minimal config namespace mirroring HACHI's generator interface.
     """
 
     def __init__(self, concept_selector: MockConceptSelector):
@@ -47,8 +45,8 @@ class MockConceptGenerator:
 class MockKeyphrase:
     """Passthrough keyphrase extractor that returns data_df unchanged.
 
-    Adds an empty llm_output column if not already present, matching the
-    column that StandardConceptGenerator expects.
+    Adds a placeholder llm_output column ("mocking") if absent: SubsetScanSCL only
+    uses rows whose llm_output is non-empty.
     """
 
     def extract(self, data_df, train_idxs):

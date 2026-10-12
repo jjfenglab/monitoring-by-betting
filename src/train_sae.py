@@ -56,10 +56,6 @@ def main() -> None:
         learning_rate=args.lr,
     )
 
-    # Cached auto-interp glosses describe the old checkpoint's neurons; clear them.
-    for stale in args.checkpoint_dir.glob("neuron_names_*.json"):
-        stale.unlink()
-
     checkpoint_path = args.checkpoint_dir / get_sae_checkpoint_name(args.M, args.K)
     settings = {
         "checkpoint_path": str(checkpoint_path),

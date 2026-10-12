@@ -1,8 +1,8 @@
 """Synthetic Gaussian-shift stream generators used by simulation experiments.
 
 Controlled feature shifts with known ground truth (true changepoint index and
-the indices of the shifted features). Consumed by `run_monitor.py` to build
-each per-seed stream in the perm-vs-sym experiment.
+the indices of the shifted features). Used by `make_data_stream.py`'s synthetic
+mode (`make_synthetic_stream`).
 """
 
 from __future__ import annotations
@@ -14,11 +14,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class SyntheticConfig:
-    """Stream-construction parameters for `build_synthetic_stream`.
-
-    Detector parameters are NOT here — they flow to `DETECTOR_CONFIGS` via
-    `run_monitor.py` CLI args.
-    """
+    """Stream-construction parameters for `make_data_stream.make_synthetic_stream`."""
 
     dim: int = 20
     n_shift_features: int = 3

@@ -8,8 +8,9 @@ the pool — n_init at burn-in, then the not-currently-active columns each step
 (the SCL subsamples to n_new). The full oracle concept matrix is precomputed
 at construction (text-keyed lookup over the pool CSVs).
 
-Ground-truth NaN (an aspect not annotated for a row) is left as NaN in the
-concept matrix.
+Ground-truth NaN (an aspect not annotated for a row) is left unextracted (NaN),
+which fails SubsetScanSCL's "fully annotated" assert, so pool columns must be
+NaN-free (augment_oracle_pool.py --zero-fill-cols).
 
 Assembled by create_lgm_pipeline.make_sequential_concept_learner for
 concept_learner_type == "oracle", reusing MockKeyphrase and IdentityConceptSelector.
@@ -149,6 +150,6 @@ class OracleSparseFeatureExtractor:
         for obs_idx, concept_idx in zip(rows, cols):
             # Map by concept NAME, not position, so column order never drifts.
             value = truth[obs_idx, self.state.col_idx[all_concepts[concept_idx]["concept"]]]
-            if not np.isnan(value):  # NaN ground truth stays unextracted -> imputed
+            if not np.isnan(value):  # NaN ground truth stays unextracted (NaN)
                 result[obs_idx, concept_idx] = int(value)
         return result

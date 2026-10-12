@@ -15,16 +15,15 @@ to avoid re-proposing topics already formalized into concepts.
 import logging
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Dict, FrozenSet, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 from collections import Counter
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from .changepoint import MeanShiftChangepointLearner, SubsetScanChangepointLearner
 from .bertopic_state import BertopicState
-from .concept_selectors import CandidateConcepts
 from src.llm_utils import SYSTEM_PROMPT, ResponseFormatError
 
 def _get_keyphrases(keyphrase_field):
@@ -105,7 +104,6 @@ class BertopicLLMConceptGenerator:
         concepts: List[dict],
     ) -> np.ndarray:
         """
-        TODO: repeat code. copied from changepoint_concept_generator.py
         Convert extractions dict to a (n_obs, n_concepts) matrix.
 
         Args:
@@ -291,14 +289,8 @@ class BertopicLLMConceptGenerator:
 
         all_keyphrases = self._collect_keyphrases(data_df)
 
-        # create full mapping of nodes to topics
-        # self._hierarchy_df = self.bertopic_state.model_.hierarchical_topics(all_keyphrases)
-        # self._hierarchy_df["Parent_ID"] = self._hierarchy_df["Parent_ID"].astype(int)
         # # add in leaf nodes to this hierarhcy df
         leaf_rows = [{"Parent_ID": t, "Topics": [t]} for t in leaf_topics]
-        # self._hierarchy_df = pd.concat(
-        #     [self._hierarchy_df, pd.DataFrame(leaf_rows)], ignore_index=True
-        # )
         self._hierarchy_df = pd.DataFrame(leaf_rows)
 
         # Flatten exclude_topics into a set of hierarchy row indices to skip

@@ -2,17 +2,16 @@
 
 A TopK sparse autoencoder pretrained offline on the disjoint SAE-side pool
 (src/train_sae.py) maps each observation's embedding to M latent activations.
-Concepts are the neurons most discriminative for the pseudo-label y
-(hypothesaes.select_neurons on the observed history); their activations are
-deterministic functions of the embedding — no LLM calls anywhere (except
-optional auto-interp naming of selected neurons, off by default).
+Concepts are all M neurons (generate_initial_concepts takes every neuron); their
+activations are deterministic functions of the embedding — no LLM calls anywhere.
 
 Two variants share this module, selected by SAEConfig.refit_every:
-  frozen (None): the offline checkpoint is used read-only for the whole stream.
-  online (int):  every `refit_every` SCL updates the checkpoint is warm-started
-                 (continued training, persistent Adam) on the side pool plus the
-                 stream history through t-1. Neuron *indices* persist across
-                 refits; their meanings drift.
+  frozen (None):            the offline checkpoint is used read-only for the whole stream.
+  online (refit_every set): the checkpoint is warm-started at every SCL update
+                            (continued training, persistent Adam) on the side pool plus
+                            the stream history through t-1; SAEState accepts only None,
+                            0 or 1. Neuron *indices* persist across refits; their
+                            meanings drift.
 
 Assembled by create_lgm_pipeline.make_sequential_concept_learner for
 concept_learner_type == "sae", reusing MockKeyphrase, IdentityConceptSelector,
@@ -24,10 +23,6 @@ data_df, never the host's `history` embeddings), so pool texts must map to a
 unique embedding — SAEState asserts this at construction.
 """
 
-import json
-import logging
-import os
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict, List
 
@@ -68,7 +63,7 @@ class SAEState:
                 f"duplicate pool text with differing embeddings: {text!r}"
             )
             self.text_to_emb[text] = e
-        self.neuron_idxs: List[int] = []  # selected neurons, concept-order
+        self.neuron_idxs: List[int] = []  # neuron index per concept, in concept order
         self.refit_every = refit_every
         assert refit_every in [0,1,None]
         self.refit_epochs = refit_epochs
@@ -149,15 +144,10 @@ class SAEConceptGenerator:
         self,
         state: SAEState,
         selection_method: str = "correlation",
-        interpret: bool = False,
-        interpreter_model: str = "gpt-4.1-mini",
         text_column: str = "text",
     ):
         self.state = state
         self.selection_method = selection_method
-        self.interpret = interpret
-        self.interpreter_model = interpreter_model
-        self._interpreter = None  # built on first _name_concepts call
         self.text_column = text_column
         self.config = SimpleNamespace(
             training=SimpleNamespace(num_greedy_holdout=0, train_frac=1.0),
@@ -185,85 +175,6 @@ class SAEConceptGenerator:
             # just refit the concepts if asked to "generate new concepts"
             self.state.refit(self.state.lookup(init_data_df[self.text_column]))
         return []
-
-    # def _select_new(self, data_df: pd.DataFrame, n_new: int) -> List[Dict]:
-    #     """Top finite-scored neurons for y not already concepts; [] when none are eligible.
-
-    #     Neurons with non-finite scores (dead/constant activations on this history) are
-    #     never selected; if fewer than n_new eligible neurons remain, propose what is
-    #     eligible. A single-class y is a hard error, not a silent all-NaN ranking.
-    #     """
-    #     acts = self.state.activations(self.state.lookup(data_df[self.text_column]))
-    #     y = data_df["y"].to_numpy()
-    #     assert len(np.unique(y)) >= 2, (
-    #         "pseudo-label y has a single class: t_hat sits at an extreme of the "
-    #         "history, so neuron scores are undefined. Callers must ensure the "
-    #         "history straddles t_hat before proposing concepts."
-    #     )
-    #     taken = set(self.state.neuron_idxs)
-    #     n_select = min(len(taken) + n_new, acts.shape[1])
-    #     idxs, scores = select_neurons(
-    #         acts, y, n_select=n_select, method=self.selection_method, classification=True,
-    #     )
-    #     n_dead = int(np.count_nonzero(~np.isfinite(scores)))
-    #     if n_dead:
-    #         logging.info(
-    #             "sae concept selection: excluded %d dead (non-finite score) neurons", n_dead
-    #         )
-    #     new = [
-    #         int(i) for i, s in zip(idxs, scores) if np.isfinite(s) and i not in taken
-    #     ][:n_new]
-    #     self.state.neuron_idxs.extend(new)
-    #     concepts = [{"concept": f"sae_neuron_{i}", "neuron_idx": i} for i in new]
-    #     if self.interpret and concepts:
-    #         self._name_concepts(concepts, data_df[self.text_column].tolist(), acts)
-    #     return concepts
-
-    def _name_concepts(self, concepts: List[Dict], texts: List[str], acts: np.ndarray) -> None:
-        """Auto-interp naming via HypotheSAEs' NeuronInterpreter (LLM calls; off by default).
-
-        hypothesaes has its own OpenAI client, separate from the repo's Versa gateway:
-        it needs OPENAI_KEY_SAE in the environment (OPENAI_BASE_URL optional, for an
-        OpenAI-compatible gateway). Glosses are cached per (checkpoint, neuron, model)
-        in neuron_names_<model>.json beside the checkpoint: a gloss describes the
-        neuron, a fixed function of the frozen SAE, so every run of a dataset shares
-        one set of names and the grid pays at most M naming calls total. Concurrent
-        runs race benignly (worst case: duplicate calls). train_sae.py clears the file
-        on retrain; delete it to force re-naming. Only meaningful for the frozen
-        variant: under online refits a neuron's meaning drifts, so name the run's
-        final checkpoint (run_monitor --sae-final-checkpoint) post hoc instead.
-        """
-        cache_path = (
-            Path(self.state.checkpoint_path).parent
-            / f"neuron_names_{self.interpreter_model}.json"
-        )
-        names: Dict[str, str] = (
-            json.loads(cache_path.read_text()) if cache_path.exists() else {}
-        )
-        missing = [c["neuron_idx"] for c in concepts if str(c["neuron_idx"]) not in names]
-        if missing:
-            from hypothesaes.interpret_neurons import NeuronInterpreter
-
-            if self._interpreter is None:
-                self._interpreter = NeuronInterpreter(interpreter_model=self.interpreter_model)
-            interpretations = self._interpreter.interpret_neurons(
-                texts=texts, activations=acts, neuron_indices=missing,
-            )
-            for i in missing:
-                candidates = [s for s in interpretations[i] if s]
-                if candidates:
-                    names[str(i)] = candidates[0]
-            # Re-read + merge so a concurrent writer's names survive; pid-unique tmp +
-            # os.replace keeps the file whole under parallel scons runs.
-            if cache_path.exists():
-                names = {**json.loads(cache_path.read_text()), **names}
-            tmp = cache_path.with_suffix(f".{os.getpid()}.tmp")
-            tmp.write_text(json.dumps(names, indent=2))
-            os.replace(tmp, cache_path)
-        for c in concepts:
-            gloss = names.get(str(c["neuron_idx"]))
-            if gloss:
-                c["concept"] = f"sae_neuron_{c['neuron_idx']}: {gloss}"
 
 
 class SAEConceptProjector:

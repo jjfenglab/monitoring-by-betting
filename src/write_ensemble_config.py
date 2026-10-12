@@ -25,11 +25,9 @@ def main() -> None:
         "concept_learner_type": args.concept_learner_type,
         "n_burn_in": args.n_burn_in,
         "scl_variant": "subset_scan",
-        "removal_rule": "none",
         "noise_rate": 0.0,
         "classifier_type": "logistic",
         "search_all_sizes": True,
-        "imputer": {"variant": "none"},
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as f:

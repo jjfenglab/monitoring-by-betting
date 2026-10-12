@@ -11,7 +11,6 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-import scipy.sparse as sp
 
 from .feature_extractors import SparseExtractionMatrix
 
@@ -46,28 +45,11 @@ class IdentityConceptGenerator:
 
 
 class IdentityConceptSelector:
-    """Placeholder selector: holds attributes SCL writes; no methods called."""
+    """Placeholder concept_selector: nothing calls or reads it."""
 
     def __init__(self):
         self.n_init_concepts = None
         self.n_new_concepts_per_update = None
-
-
-class IdentityFeatureExtractionSelector:
-    """Feature selection no-op: signals that nothing needs to be extracted.
-
-    Matches FeatureExtractionSelector's signature but always returns an empty mask, so
-    identity concepts (raw embedding dims) are never annotated and stay imputer-passthrough.
-    """
-
-    def select_features(
-        self,
-        n_obs: int,
-        n_concepts: int,
-        new_concept_start: int,
-        annotation_rate: float,
-    ) -> sp.lil_array:
-        return sp.lil_array((n_obs, n_concepts), dtype=np.int8)
 
 
 class IdentitySparseFeatureExtractor:

@@ -6,9 +6,7 @@ subclasses (see `e_detector.py` / `e_detector_sr.py`).
 
 Pre-computed probabilities passed in from the monitor:
   p_t    = SCL real classifier P(y=1 | x_t)
-  p_null = SCL.predict_proba_null() — the calibration pool's mean prediction,
-           read at x_t's own per-row cell budget so both sides of the bet reach
-           the classifier through the same annotation missingness
+  p_null = SCL.predict_proba_null() — the calibration pool's mean prediction
 """
 
 from __future__ import annotations
@@ -19,12 +17,9 @@ import abc
 class EProcess(abc.ABC):
     """Single anytime-valid e-process. Cumulative product of L_t increments.
 
-    Subclasses implement `_compute_increment(x_t, *, concept_model, controls_t)`
-    to define the per-step bet shape. The base class handles the multiplicative
-    update `E *= L`, step counter, and threshold comparison via Ville's inequality.
-
-    Concrete-subclass warm-up logic (e.g. classifier waiting for enough samples)
-    lives inside `_compute_increment` and returns 1.0 while warming up.
+    Subclasses implement `_compute_increment(p_t, p_null)` to define the per-step
+    bet. The base class applies the multiplicative update `E *= L` and keeps
+    `hist_E` / `hist_L`. Burn-in is handled by the e-detector, not here.
     """
 
     def __init__(self, lam: float = 1.0, alpha_sig: float = 0.05, t_start: int = 0):
@@ -54,13 +49,13 @@ class EProcess(abc.ABC):
         p_t: float,
         p_null: float | None = None,
     ) -> float:
-        """Per-step multiplicative factor L_t > 0. Return 1.0 during own warm-up."""
+        """Per-step multiplicative factor L_t > 0."""
 
     def update(
         self,
         p_t: float,
         p_null: float | None = None,
-    ) -> tuple[float, float]:
+    ) -> None:
         L = self._compute_increment(p_t, p_null=p_null)
         assert L > 0, f"L must be positive, got {L}"
         new_E = self.E * L

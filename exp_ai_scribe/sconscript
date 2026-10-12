@@ -69,9 +69,6 @@ K_CALIB_VALUES    = [
 MAX_STEPS_NULL       = NULL_LEN
 MAX_STEPS_SHIFT      = SHIFT_LEN
 
-HISTORY_SAMPLE_SIZES = {
-    "bertopic_llm": [SHIFT_LEN],
-}
 N_BURN_IN      = 75
 CANDIDATE_STEP = 1
 LAM            = 0.5
@@ -83,8 +80,6 @@ THRESHOLD_MAX_PLOT  = THRESHOLD_MAX
 N_THRESHOLDS   = int((THRESHOLD_MAX - THRESHOLD_MIN) / 5 + 1)
 MAX_M_STATISTIC = max(NULL_LEN, SHIFT_LEN)
 MIN_BLOCK      = 10
-N_DIRS         = 20
-SW_P           = 2
 SAVE_MATRIX_SNAPSHOTS = True
 
 PLOT_FACET_ROW = None
@@ -116,7 +111,6 @@ N_NEW_CONCEPTS_PER_UPDATE = 2
 LLM_N_NEW_CONCEPTS       = 2
 
 LLM_CP_LEARNERS = ("mean_shift",)
-REAL_QUERY_BUDGET_CEILING = 500
 SEED_CAPS = {
     "bertopic_llm": {"shift": 14, "null": 0},
 }
@@ -135,12 +129,10 @@ CHANGEPOINT_FEATURE_DICT = {
 }
 CLASSIFIERS        = ["logistic"]
 MAX_UNPENALIZED_DIM = 10
-CV_FOLDS           = 3
-CV_N_CS            = 10
 
 THRESHOLD_MAX_PLOT_NULL = MAX_STEPS_NULL - N_BURN_IN
 PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
-                 "oracle_variant", "sae_variant", "variant", "search_all_sizes", "history_sample_size"]
+                 "oracle_variant", "sae_variant", "variant", "search_all_sizes"]
 
 def _seed_class(cap):
     return "*" if cap is None else f"[0-{cap - 1}]"
@@ -381,11 +373,6 @@ nest.add(
     lambda c: LLM_MODELS if c["concept_learner_type"] in LLM_LEARNER_TYPES else ["none"],
     label_func=lambda c: f"llm_{c.replace('/', '_').replace('.', '_')}")
 
-nest.add(
-    "history_sample_size",
-    lambda c: HISTORY_SAMPLE_SIZES.get(c["concept_learner_type"], [None]),
-    label_func=lambda c: "" if c is None else f"hss_{c}")
-
 @nest.add_target_with_env(localenv)
 def create_scl_config(env, outdir, c):
     targets = [path_join(outdir, "scl_config.json")]
@@ -409,19 +396,13 @@ def create_scl_config(env, outdir, c):
         "--seed",                      12345,
         "--n-init-concepts",           n_init_concepts,
         "--n-new-concepts-per-update", n_new,
-        "--real-query-budget-ceiling", REAL_QUERY_BUDGET_CEILING,
         "--max-unpenalized-dim",       MAX_UNPENALIZED_DIM,
-        "--cv-folds",                  CV_FOLDS,
-        "--cv-n-cs",                   CV_N_CS,
         "--cache-mode",                ("per_stream" if clt in LLM_LEARNER_TYPES else "shared"),
         "--classifier-type",          c["classifier"],
     ]
 
     if c["search_all_sizes"]:
         cmd.append("--search-all-sizes")
-
-    if c["history_sample_size"] is not None:
-        cmd += ["--history-sample-size", c["history_sample_size"]]
 
     if _is_sae(c):
         sources = [c["train_sae"][0], c["embed_pools"][0], c["embed_pools"][1]]
@@ -485,8 +466,6 @@ def run_monitor(env, outdir, c):
         "--max-m-statistic",     MAX_M_STATISTIC if c["concept_learner_type"] == "bertopic_llm" else (MAX_M_STATISTIC * 3),
         "--candidate-step",      CANDIDATE_STEP,
         "--min-block",           MIN_BLOCK,
-        "--n-dirs",              N_DIRS,
-        "--p",                   SW_P,
         "--embeddings-path",     "${SOURCES[0]}",
         "--stream-csv",          "${SOURCES[1]}",
         "--out",                 "${TARGETS[0]}",

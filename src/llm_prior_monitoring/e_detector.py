@@ -4,13 +4,12 @@ An e-detector maintains a list of e-process components (`components`) and an
 aggregate statistic M_t = sum_j Lambda^(j)_t. Two-level ABC:
 
 * `EDetector`  : shared state + concrete accessors + abstract `update`.
-* `SharedLEDetector(EDetector)` : SR-shortcut path — all components share the
-  same per-step L_t; M_t = (1 + M_{t-1}) * L_t. The probe-EProcess pattern
-  computes L_t once per step. Concrete subclasses set `eprocess_cls`.
+* `SharedLEDetector(EDetector)` : every component shares the per-step L_t. Each
+  post-burn-in step births one e-process and M_t is the sum of their E values,
+  which equals the Shiryaev-Roberts recursion M_t = (1 + M_{t-1}) * L_t.
+  Concrete subclasses set `eprocess_cls`.
 
-Concrete detectors live in `e_detector_sr.py`. `ChangepointLearner` (see
-`changepoint.py`) supplies the `t_hat` argument to `update`. The per-component
-`PerComponentLEDetector` line is parked in `_backup/e_detector_jspecific.py`.
+Concrete detectors live in `e_detector_sr.py`.
 """
 
 from __future__ import annotations
@@ -55,9 +54,6 @@ class EDetector(abc.ABC):
         self.threshold = 1.0 / alpha
         self.max_m_statistic = max_m_statistic
         self.components: list[EProcess] = []
-        # `starts[k]` is the 0-indexed stream step at which `components[k]` was
-        # born. Tracked explicitly so subclasses with grid-based births can
-        # report correct start indices via `current_component_starts`.
         self.history_MStatistic: list[float] = []
         self.history_increment: list[float] = []
     
@@ -78,9 +74,7 @@ class EDetector(abc.ABC):
         """Step forward by one observation. Returns (M_t, reject).
 
         p_t    = P(y=1 | x_t) from SCL's real classifier.
-        p_null = null reference probability (mean over controls for symmetric;
-                 random-ensemble prediction for symmetric_random; None for
-                 permutation).
+        p_null = SCL.predict_proba_null(), the calibration pool's mean prediction.
         """
 
     def is_rejected(self) -> bool:

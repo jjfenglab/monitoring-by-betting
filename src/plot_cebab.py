@@ -3,8 +3,7 @@
 Three stages, in order:
 
 1. declare  -- --baseline COL=V1,V2 (repeatable, specs UNION) splits off the rows that
-   belong in every panel: the CTM family, and the arms that never annotate so no
-   annotation-cost level owns them. So plotted = OR(baselines) u rest.
+   belong in every panel, e.g. the CTM family. So plotted = OR(baselines) u rest.
 2. facet    -- --facet-row / --facet-col cut the rest into a grid.
 3. draw     -- compared series solid, baselines dashed in every panel.
 
@@ -14,8 +13,7 @@ that silently multiplies across the grid.
 
 --style paper (the default) names each arm from semisynthetic_display_names.json's
 series_short_names and draws one legend below the panels, dashed iff the arm is a CTM;
---style diagnostic keeps the long "Field: Value, ..." labels, the Comparators legend and
-the subtitle.
+--style diagnostic keeps the long "Field: Value, ..." labels and the Comparators legend.
 """
 
 from __future__ import annotations
@@ -34,14 +32,12 @@ import seaborn as sns
 from llm_prior_monitoring.display_names import (display_assignment, name_series_short,
                                                 order_series_names)
 
-# Config columns eligible to appear in a facet, a hue label, a --baseline or a --filter.
+# Config columns eligible to appear in a facet, a hue label or a --baseline.
 # LGM and CTM rows each carry only their own block; the other block is NaN after the
 # concat, which is why a row's own NaN columns are skipped when its label is built.
 LGM_LABEL_COLS = ["cp_feature_source", "concept_learner_type", "changepoint_learner",
-                  "e_process", "classifier_type", "annotation_rate",
-                  "scl_variant", "budget_profile", "budget",
-                  "imputer_variant", "removal_variant", "oracle_variant",
-                  "search_all_sizes", "llm_model", "history_sample_size"]
+                  "e_process", "classifier_type", "scl_variant", "oracle_variant",
+                  "search_all_sizes", "llm_model"]
 CTM_LABEL_COLS = ["scorer", "variant", "jump_rates"]
 LABEL_COLS = ["family"] + LGM_LABEL_COLS + CTM_LABEL_COLS
 
@@ -91,23 +87,22 @@ def parse_args() -> argparse.Namespace:
                    help="all_ctm_summary.csv; when given, CTM curves join the same axes.")
     p.add_argument("--n-burn-in", type=int, required=True,
                    help="Burn-in excluded from every run length; sets the EDD reference "
-                        "line offset to n_pre - n_burn_in. Stated in the subtitle when --ctm-csv is "
-                        "given: the CTM bets from t=0 while the SCL burns in, a gap that "
-                        "is invisible on shared axes yet dominates EDD.")
+                        "line offset to n_pre - n_burn_in.")
     p.add_argument("--out-nominal", type=Path, required=True,
                    help="Output figure: nominal ARL vs EDD")
     p.add_argument("--out-calibration", type=Path, required=True,
                    help="Output figure: empirical vs nominal ARL")
     p.add_argument("--baseline", type=str, action="append", default=None,
                    dest="baselines", metavar="COL=VAL[,VAL...]",
-                   help="Rows drawn dashed in every panel and exempt from --filter. "
+                   help="Rows drawn in every panel (dashed under --style diagnostic; "
+                        "--style paper dashes CTM arms). "
                         "Values within a spec union; repeated specs union. "
                         "Default: no baselines.")
     p.add_argument("--n-pre", type=int, default=None,
                    help="If set, draw the guide line EDD = ARL - n_pre")
     p.add_argument("--threshold-min", type=float, default=0,
                    help="Shared x-axis min for the two ARL-vs-EDD figures "
-                        "(the sweep's min threshold). Default: data-derived limits.")
+                        "(the sweep's min threshold). Give together with --threshold-max.")
     p.add_argument("--threshold-max", type=float, default=None,
                    help="Shared x-axis max for the two ARL-vs-EDD figures.")
     p.add_argument("--threshold-min-null", type=float, default=None,
@@ -135,8 +130,8 @@ def parse_args() -> argparse.Namespace:
                    help="Which seed-bootstrap band to shade around each curve.")
     p.add_argument("--style", choices=["paper", "diagnostic"], default="paper",
                    help="paper: short series names, one legend, print rcParams. "
-                        "diagnostic: the long label chains, the Comparators legend and "
-                        "the subtitle -- use it when a sweep's arms are not all named.")
+                        "diagnostic: the long label chains and the Comparators legend "
+                        "-- use it when a sweep's arms are not all named.")
     p.add_argument("--log", type=Path, required=True)
     return p.parse_args()
 
@@ -144,14 +139,12 @@ def parse_args() -> argparse.Namespace:
 def load_summaries(csv: Path, ctm_csv: Path | None) -> pd.DataFrame:
     """Concat the LGM and CTM summaries, stamping `family` as the arm's provenance.
 
-    family is a filter key (--baseline family=CTM), so it stays a bare token; the burn-in
-    difference it used to spell out goes in the subtitle. Each family's config columns
+    family is a --baseline key (--baseline family=CTM), so it stays a bare token. Each
+    family's config columns
     are NaN on the other's rows -- compute_summary emits identical metric columns for
     both, which is what makes the concat meaningful.
     """
-    # history_sample_size stays text ("100", not 100.0): NaN rows would otherwise make
-    # pandas re-infer the column as float and the legend would print "100.0".
-    df = pd.read_csv(csv, dtype={"history_sample_size": str})
+    df = pd.read_csv(csv)
     df["family"] = "LGM"
     logging.info("loaded %d rows from %s", len(df), csv)
     if ctm_csv is not None:
@@ -159,9 +152,6 @@ def load_summaries(csv: Path, ctm_csv: Path | None) -> pd.DataFrame:
         ctm["family"] = "CTM"
         df = pd.concat([df, ctm], ignore_index=True)
         logging.info("loaded %d CTM rows from %s", len(ctm), ctm_csv)
-    # empirical_arl is deliberately NOT required: an arm run without null streams has NaN
-    # there and still belongs on the EDD figures. seaborn skips its rows on the two
-    # figures that plot it.
     return df.dropna(subset=["edd", "nominal_arl"])
 
 
@@ -170,7 +160,7 @@ def parse_specs(df: pd.DataFrame, specs: list[str] | None,
     """Split "COL=V1,V2" specs into (column, values), validating both against df.
 
     When strict=True (filters), asserts that EACH listed value matches at least one row,
-    so a renamed budget profile fails loudly instead of quietly narrowing the figure.
+    so a renamed concept_learner_type fails loudly instead of quietly narrowing the figure.
     When strict=False (baselines), warns and drops values/specs that match no rows, since
     baselines are optional comparators that may not exist in every experiment configuration.
     """
@@ -261,8 +251,6 @@ def draw_series(ax, sub: pd.DataFrame, x_col: str, y_col: str, palette: dict,
 
     With `band_prefix` (e.g. "edd_sim"), `{prefix}_{lo,hi}` is shaded per method; NaN
     band entries (censored thresholds) leave gaps.
-    The per-threshold markers are commented out, not deleted: with many series they
-    crowd the panel and make solid-vs-dashed hard to read. Uncomment to get them back.
     """
     if len(sub) == 0:
         return
@@ -275,7 +263,6 @@ def draw_series(ax, sub: pd.DataFrame, x_col: str, y_col: str, palette: dict,
                   palette=palette, legend=False, ax=ax)
     sns.lineplot(**{**shared, "data": sub.sort_values(x_col), "linestyle": linestyle,
                     "errorbar": None})
-    # sns.scatterplot(**shared, s=80)
 
 
 def draw_facet_grid(series_df: pd.DataFrame, baseline_df: pd.DataFrame,
@@ -404,8 +391,6 @@ def build_legends(fig, palette: dict, series_labels: list[str],
     def build_handles(labels: list[str], linestyle: str) -> list:
         # marker="o" dropped with the panel markers: on a short legend segment the dot
         # is most of the handle, which is where solid-vs-dashed is hardest to tell apart.
-        # return [plt.Line2D([], [], color=palette[m], marker="o", linestyle=linestyle)
-        #         for m in labels]
         return [plt.Line2D([], [], color=palette[m], linestyle=linestyle)
                 for m in labels]
 
@@ -445,7 +430,7 @@ def main() -> None:
         orphans = series[series[col].isna()]
         assert len(orphans) == 0, (
             f"{len(orphans)} filtered rows have no {col!r} value and so no panel to land "
-            f"in -- declare them with --baseline or exclude them with --filter")
+            f"in -- declare them with --baseline")
 
     # One frame for labelling and colouring, so a method keeps its identity whether it is
     # a compared series or a reference.

@@ -6,16 +6,10 @@
     "changepoint_learner": "Changepoint estimator",
     "e_process": "E-process",
     "classifier_type": "Classifier",
-    "annotation_rate": "Annotation rate",
-    "imputer_variant": "Imputation",
-    "removal_variant": "Concept retention",
-    "scl_variant": "Removal schedule",
+    "scl_variant": "SCL variant",
     "sae_variant": "SAE fitting",
     "oracle_variant": "Oracle concept set",
-    "budget_profile": "Budget profile",
-    "budget": "Annotation budget",
     "search_all_sizes": "Subset search",
-    "history_sample_size": "History sample",
     "scorer": "CTM score",
     "variant": "Direction",
     "jump_rates": "Jump rate"
@@ -41,31 +35,16 @@
     "changepoint_learner": {
       "mean_shift": "Mean shift",
       "kernel_cosine": "Cosine-kernel change point",
-      "kernel_rbf": "RBF-kernel change point",
-      "sw_stored": "Sliced Wasserstein (fixed directions)",
-      "sw_random": "Sliced Wasserstein (random directions)"
+      "kernel_rbf": "RBF-kernel change point"
     },
     "e_process": {
       "ProposedMethod": "Symmetric SR e-process"
     },
     "classifier_type": {
-      "logistic": "Logistic regression",
-      "random_forest": "Random forest"
-    },
-    "imputer_variant": {
-      "off": "Fixed imputer",
-      "on": "Tuned imputer"
-    },
-    "removal_variant": {
-      "none": "No concept removal",
-      "importance": "Importance-based retention",
-      "greedy_1": "Permutation/refit retention (single)",
-      "greedy_n": "Permutation/refit retention (grouped)",
-      "random": "Random retention"
+      "logistic": "Logistic regression"
     },
     "scl_variant": {
-      "detect_then_remove": "Detect then remove",
-      "remove_then_detect": "Remove then detect"
+      "subset_scan": "Subset scan"
     },
     "sae_variant": {
       "frozen": "Frozen SAE",

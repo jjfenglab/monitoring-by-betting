@@ -1,32 +1,19 @@
 """Factory functions for assembling the adaptive monitoring pipeline.
 
-Provides three component factories (make_e_detector, make_changepoint_learner,
-make_sequential_concept_learner) and a convenience assembler (make_monitor).
-CHANGEPOINT_LEARNER_NAMES are defined here and imported
-by run_monitor.py for argparse choices.
+Provides make_classifier and make_sequential_concept_learner, plus the name sets
+run_monitor.py uses for argparse choices (CHANGEPOINT_LEARNER_NAMES,
+CP_FEATURE_SOURCE_NAMES) and the supported concept-learner types (SCL_TYPES).
 """
 
 from __future__ import annotations
 
 import numpy as np
-from sklearn.base import BaseEstimator
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import RandomizedSearchCV
+import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from llm_prior_monitoring.changepoint import (
-    ChangepointLearner,
-    KernelCPDLearner,
-    MeanShiftChangepointLearner,
-    SlicedWassersteinCPDLearner,
-)
-from llm_prior_monitoring.classifiers import DimensionAdaptiveLogistic, DirectionFixedLogistic
+from llm_prior_monitoring.classifiers import DimensionAdaptiveLogistic
 from llm_prior_monitoring.concept_selectors import MockConceptSelector, MockConceptState
-from llm_prior_monitoring.e_detector import EDetector
-from llm_prior_monitoring.e_detector_sr import (
-    SymmetricSREDetector,
-)
 from llm_prior_monitoring.feature_extractors import MockSparseFeatureExtractor
 from llm_prior_monitoring.identity_components import (
     IdentityConceptGenerator,
@@ -45,12 +32,10 @@ CHANGEPOINT_LEARNER_NAMES: frozenset[str] = frozenset({
     "mean_shift",
     "kernel_cosine",
     "kernel_rbf",
-    "sw_stored",
-    "sw_random",
 })
 
 # The representation the changepoint learner scans for the shift: raw embeddings, or
-# the imputer concept space (real annotations override imputed values).
+# the concept space.
 CP_FEATURE_SOURCE_NAMES: frozenset[str] = frozenset({
     "embedding",
     "concept",
@@ -59,42 +44,17 @@ CP_FEATURE_SOURCE_NAMES: frozenset[str] = frozenset({
 SCL_TYPES: frozenset[str] = frozenset({"identity", "mock", "sae", "oracle", "bertopic_llm"})
 
 
-def make_classifier(config: SCLConfig) -> BaseEstimator:
-    """Build the SCL's classifier from config, optionally CV-tuning it at each fit."""
+def make_classifier(config: SCLConfig) -> Pipeline:
+    """Build the SCL's logistic classifier (scaler + DimensionAdaptiveLogistic) from config."""
     clf_cfg = config.classifier
-    classifier_type = clf_cfg.classifier_type
-    assert classifier_type in ("logistic", "random_forest", "direction_fixed"), (
-        f"Unknown classifier_type: {classifier_type!r}"
+    assert clf_cfg.classifier_type == "logistic", (
+        f"Unknown classifier_type: {clf_cfg.classifier_type!r}"
     )
-    if classifier_type == "logistic":
-        lr = DimensionAdaptiveLogistic(
-            max_unpenalized_dim=clf_cfg.max_unpenalized_dim,
-            l1_ratio=clf_cfg.l1_ratio,
-            cv=clf_cfg.cv,
-            cv_folds=clf_cfg.cv_folds,
-            cv_n_cs=clf_cfg.cv_n_cs,
-            random_state=config.seed,
-        )
-        return Pipeline([("scaler", StandardScaler()), ("clf", lr)])
-
-    if classifier_type == "direction_fixed":
-        clf = DirectionFixedLogistic()
-        return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
-
-    base = RandomForestClassifier(
-        n_estimators=clf_cfg.rf_n_estimators, class_weight="balanced", random_state=config.seed,
+    lr = DimensionAdaptiveLogistic(
+        max_unpenalized_dim=clf_cfg.max_unpenalized_dim,
+        l1_ratio=clf_cfg.l1_ratio,
     )
-    if not clf_cfg.cv:
-        return base
-    return RandomizedSearchCV(
-        base,
-        param_distributions={
-            "max_features": ["sqrt", "log2", 0.5],
-            "min_samples_leaf": [3, 5, 10],
-        },
-        n_iter=clf_cfg.rf_n_iter, cv=clf_cfg.cv_folds, scoring="neg_log_loss",
-        refit=True, random_state=config.seed,
-    )
+    return Pipeline([("scaler", StandardScaler()), ("clf", lr)])
 
 
 def make_sequential_concept_learner(
@@ -112,13 +72,13 @@ def make_sequential_concept_learner(
     mock         — Bernoulli concept simulation based on per-row y_true; no LLM calls.
     sae          — pretrained SAE latents are the concepts; no LLM calls. With
                    config.sae.refit_every set, the SAE is warm-started on the history
-                   each step (online variant); removal is supported either way.
+                   each step (online variant).
     oracle       — user-supplied ground-truth pool columns are the concepts; no LLM calls.
     bertopic_llm — cluster keyphrases with BERTopic, formalize top shifted topics into
                    yes/no concepts via LLM, annotate via LLM.
 
     min_block is the CP learner's min_block, passed through by run_monitor so the SCL
-    and CP learner agree by construction (required for scl_variant=remove_then_detect).
+    and CP learner agree by construction.
 
     keyphrase_outputs_file is the per-run keyphrase dump (write-only debug output).
     None writes nothing; run_monitor points it into the run's own output dir so
@@ -132,7 +92,6 @@ def make_sequential_concept_learner(
         f"Only subset_scan variant is supported, got {config.scl_variant!r}"
     )
     assert min_block is not None, "subset_scan needs min_block from run_monitor"
-    ann_cfg = config.annotation_selector
     classifier = make_classifier(config)
     prop_cfg = config.concept_proposer
 
@@ -182,8 +141,6 @@ def make_sequential_concept_learner(
             concept_generator=SAEConceptGenerator(
                 state,
                 selection_method=sae_cfg.selection_method,
-                interpret=sae_cfg.interpret,
-                interpreter_model=sae_cfg.interpreter_model,
             ),
             concept_selector=IdentityConceptSelector(),
             sparse_feature_extractor=IdentitySparseFeatureExtractor(),
@@ -231,7 +188,6 @@ def make_sequential_concept_learner(
                 n_burn_in=config.n_burn_in,
                 n_init_concepts=prop_cfg.n_init_concepts,
                 n_new_concepts_per_update=prop_cfg.n_new_concepts_per_update,
-                history_sample_size=config.history_sample_size,
                 fixed_calibs=fixed_calibs,
                 calib_df=calib_df,
                 seed=config.seed,
@@ -248,7 +204,6 @@ def make_sequential_concept_learner(
             n_burn_in=config.n_burn_in,
             n_init_concepts=len(oracle_cfg.concept_cols),
             n_new_concepts_per_update=0,
-            history_sample_size=config.history_sample_size,
             fixed_calibs=fixed_calibs,
             calib_df=calib_df,
             seed=config.seed,
@@ -273,7 +228,6 @@ def make_sequential_concept_learner(
             n_burn_in=config.n_burn_in,
             n_init_concepts=prop_cfg.n_init_concepts,
             n_new_concepts_per_update=prop_cfg.n_new_concepts_per_update,
-            history_sample_size=config.history_sample_size,
             fixed_calibs=fixed_calibs,
             calib_df=calib_df,
             seed=config.seed,
@@ -312,6 +266,8 @@ def make_sequential_concept_learner(
             llm_outputs_file=keyphrase_outputs_file,
             num_retries=0,
             retry_delay_seconds=60,
+            # HACHI's keyphrase log: one file shared by every run (unlike the per-run
+            # keyphrase_outputs_file).
             log_file="_output/keyphrase.log",
             retry_prompt_file=prop_cfg.prompt_keyphrase_retry_file,
         )
@@ -363,7 +319,5 @@ def make_sequential_concept_learner(
             n_burn_in=config.n_burn_in,
             n_init_concepts=prop_cfg.n_init_concepts,
             n_new_concepts_per_update=prop_cfg.n_new_concepts_per_update,
-            real_query_budget_ceiling=ann_cfg.real_query_budget_ceiling,
-            history_sample_size=config.history_sample_size,
             seed=config.seed,
         )

@@ -11,8 +11,8 @@ duplicate-text assert). Outputs are the input CSVs plus the noise columns.
 
 --zero-fill-cols: ground-truth concept columns whose NaN entries are imputed
 as 0 BEFORE noise sampling (aspects CEBaB left unannotated read as "absent").
-The oracle extractor leaves NaN unextracted, which breaks remove_then_detect's
-fully-annotated-new-columns contract; zero-filling here keeps the
+The oracle extractor leaves NaN unextracted, but SubsetScanSCL expects fully
+annotated concept columns (it does no imputation); zero-filling here keeps the
 oracle_random_pool arm's pool complete.
 """
 import argparse

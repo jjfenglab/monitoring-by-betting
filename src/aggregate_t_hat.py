@@ -1,7 +1,8 @@
 """Aggregate t_hat estimates from debug.csv files and compute RMSE vs true changepoint.
 
-Reads the final t_hat (at alarm time) from each shift run's debug.csv, computes
-RMSE against N_PRE (true changepoint), and reports bootstrap 95% CIs.
+Reads the t_hat in the last row of each shift run's debug.csv (the end of the run:
+stream end or the --max-m-statistic stop), computes RMSE against N_PRE (true
+changepoint), and reports bootstrap 95% CIs.
 """
 
 import argparse

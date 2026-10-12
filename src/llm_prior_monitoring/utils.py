@@ -1,9 +1,9 @@
-"""Dependency-light helpers shared across detectors, metrics, and demos.
+"""Small helpers shared by metrics and the aggregation scripts: CSV writing,
+float-list parsing, bootstrap CIs and curve bands.
 
-No heavy module-level imports (sklearn, sentence-transformers): any script can
-reuse the formatting and bootstrap helpers without dragging in the detector or
-embedding stack. matplotlib is imported lazily inside `get_pyplot`, only when a
-caller actually plots.
+The module imports only numpy and the standard library, but importing it as
+`llm_prior_monitoring.utils` runs the package `__init__`, which loads the full
+detector/LLM stack.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import numpy as np
-import json 
 
 
 def parse_float_list(raw: str) -> list[float]:
@@ -22,11 +21,7 @@ def parse_float_list(raw: str) -> list[float]:
 
 
 def write_rows(rows: list[dict], out_path: Path) -> None:
-    """Write a list of dict rows to CSV with a sorted-union of keys as columns.
-
-    Pure CSV-out: callers that also want plots invoke `plot.plot_summary_rows`
-    separately (now split into its own SCons target).
-    """
+    """Write a list of dict rows to CSV with a sorted-union of keys as columns."""
     if not rows:
         return
     fieldnames = sorted({key for row in rows for key in row})
@@ -36,29 +31,6 @@ def write_rows(rows: list[dict], out_path: Path) -> None:
         writer.writeheader()
         writer.writerows(rows)
     print(f"wrote summary -> {out_path}")
-
-# DEPRECATED: 
-def format_or_na(value, spec: str = ".2f") -> str:
-    """Format a number for console tables, returning 'N/A' for None or NaN."""
-    if value is None:
-        return "N/A"
-    try:
-        if np.isnan(value):
-            return "N/A"
-    except TypeError:
-        pass
-    return f"{float(value):{spec}}"
-
-# DEPRECATED: 
-def _fmt(value) -> str:
-    return format_or_na(value, ".1f")
-
-# DEPRECATED: 
-def nanmean_or_nan(values: Iterable[float]) -> float:
-    """Mean of the finite entries, or NaN if there are none."""
-    vals = np.asarray(list(values), dtype=float)
-    vals = vals[np.isfinite(vals)]
-    return float(vals.mean()) if len(vals) else float("nan")
 
 
 def bootstrap_ci(
@@ -134,29 +106,3 @@ def bootstrap_curve_bands(
     bands["crit"] = crit
     return bands
 
-
-# DEPRECATED: 
-def extract_json_array(content: str, expected_len: int) -> list:
-    """Extract and parse a JSON array from LLM output.
-
-    Tolerates markdown fences and trailing commentary by slicing from the
-    first '[' to the last ']'. Raises ValueError on parse failure or length
-    mismatch. Adapted from exp_simple/generate_subtle_shift.py.
-    """
-    start = content.find("[")
-    end = content.rfind("]")
-    if start == -1 or end == -1 or end < start:
-        raise ValueError(
-            f"Could not find JSON array delimiters in LLM output: {content[:300]}"
-        )
-    json_str = content[start : end + 1]
-    try:
-        result = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Extracted JSON could not be parsed: {json_str[:300]}") from e
-    assert isinstance(result, list) and len(result) == expected_len, (
-        f"Expected JSON list of length {expected_len}, got "
-        f"{type(result).__name__} of length "
-        f"{len(result) if isinstance(result, list) else 'N/A'}"
-    )
-    return result

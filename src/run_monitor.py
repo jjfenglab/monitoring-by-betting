@@ -6,7 +6,6 @@ Can specify with or without LLM prior
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import pickle
 import sys
@@ -26,14 +25,8 @@ from create_lgm_pipeline import (
     CP_FEATURE_SOURCE_NAMES,
     make_sequential_concept_learner,
 )
-from llm_prior_monitoring.concept_lifecycle import (
-    ConceptEpisodeRecorder,
-    ConceptLifecycleRow,
-    CsvRecorder,
-    RemovalCandidateRow,
-)
+from llm_prior_monitoring.concept_lifecycle import ConceptEpisodeRecorder
 from llm_prior_monitoring.e_detector_sr import SymmetricSREDetector
-from merge_llm_cache import merge_cache
 from llm_prior_monitoring.monitor import AdaptiveMonitoring
 from llm_prior_monitoring.scl_config import SCLConfig
 
@@ -43,7 +36,7 @@ pd.set_option('display.width', 200)
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Run one LLMGuidedMonitoring procedure on a pre-generated data stream."
+        description="Run one AdaptiveMonitoring procedure on a pre-generated data stream."
     )
     p.add_argument("--seed", type=int, default=0)
 
@@ -66,8 +59,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cp-feature-source", default="embedding", choices=sorted(CP_FEATURE_SOURCE_NAMES))
     p.add_argument("--candidate-step", type=int, default=5, help="the grid for skimming over possible changepoints. smallest grid size is 1")
     p.add_argument("--min-block", type=int, default=5, help="minimum num of observations in the pre- and post- changepoint partitions")
-    p.add_argument("--n-dirs", type=int, default=20, help="num SW directions checked")
-    p.add_argument("--p", type=int, default=2, choices=[1, 2], help="wasserstein order")
     p.add_argument("--gamma", type=float, default=None, help="kernel gamma")
 
     # Data stream inputs
@@ -84,31 +75,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--log", type=Path, required=True)
     p.add_argument("--debug-csv", type=Path, required=True)
     p.add_argument("--matrix-snapshot-dir", type=Path, default=None,
-                   help="If set, write per-step annotated/imputed matrix CSVs here")
+                   help="If set, write per-step annotation/feature matrix CSVs here")
     p.add_argument("--sae-final-checkpoint", type=Path, default=None,
-                   help="Online SAE only: save the end-of-stream SAE here (for post-hoc "
-                        "auto-interp; the in-stream neurons drift)")
-    # Opt-in lifecycle diagnostics: only exp_cebab declares these targets, so every
-    # other experiment keeps calling this script unchanged.
-    p.add_argument("--concept-lifecycle-csv", type=Path, default=None,
-                   help="Per-(t, concept_id) state of the active concept set")
+                   help="Online SAE only: save the end-of-stream SAE here")
+    # Opt-in episode diagnostics: only exp_cebab and exp_cub declare this target, so
+    # every other experiment keeps calling this script unchanged.
     p.add_argument("--concept-episodes-csv", type=Path, default=None,
                    help="Per-concept_id residency episodes; the concept-name dictionary")
-    p.add_argument("--removal-csv", type=Path, default=None,
-                   help="If set, write every scored removal candidate here")
     p.add_argument("--keyphrase-csv", type=Path, default=None,
                    help="bertopic_llm only: if set, dump the keyphrase-extraction frame here. "
                         "Per-run: concurrent streams must not share one path")
-    args = p.parse_args()
-    assert (args.concept_lifecycle_csv is None) == (args.concept_episodes_csv is None), (
-        "--concept-lifecycle-csv and --concept-episodes-csv go together: lifecycle "
-        "rows carry concept_id, which only resolves through the episodes file"
-    )
-    assert args.removal_csv is None or args.concept_episodes_csv is not None, (
-        "--removal-csv needs --concept-episodes-csv to resolve its member_ids"
-    )
-
-    return args
+    return p.parse_args()
 
 
 def load_stream_data(args) -> tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
@@ -145,7 +122,6 @@ def main() -> None:
 
     logging.info("args: %s", vars(args))
 
-    # Validate e-process / null-source consistency
     scl_config = SCLConfig.from_json(args.scl_config)
     logging.info("scl_config: %s", scl_config)
 
@@ -186,19 +162,13 @@ def main() -> None:
     if args.matrix_snapshot_dir is not None:
         args.matrix_snapshot_dir.mkdir(parents=True, exist_ok=True)
 
-    lifecycle_recorder = None
-    if args.concept_lifecycle_csv is not None:
+    if args.concept_episodes_csv is not None:
         # Identity's "concepts" are embedding dimensions, so per-concept rows are
-        # meaningless; the recorders still write headers, keeping the declared SCons
-        # targets uniform across every cell of the grid.
+        # meaningless; the recorder still writes the header, keeping the declared SCons
+        # target uniform across every cell of the grid.
         enabled = scl_config.concept_learner_type != "identity"
-        lifecycle_recorder = CsvRecorder(
-            args.concept_lifecycle_csv, ConceptLifecycleRow, enabled=enabled)
         scl.episode_recorder = ConceptEpisodeRecorder(
             args.concept_episodes_csv, scl.scl_variant, enabled=enabled)
-        if args.removal_csv is not None:
-            scl.removal_recorder = CsvRecorder(
-                args.removal_csv, RemovalCandidateRow, enabled=enabled)
 
     monitor = AdaptiveMonitoring(
         sequential_concept_learner=scl,
@@ -207,7 +177,6 @@ def main() -> None:
         n_burn_in=scl_config.n_burn_in,
         debug_csv=args.debug_csv,
         matrix_snapshot_dir=args.matrix_snapshot_dir,
-        concept_lifecycle_recorder=lifecycle_recorder,
     )
 
     for t, (structured_obs_t, row) in enumerate(zip(stream_emb, stream_df.itertuples())):
@@ -254,12 +223,6 @@ def main() -> None:
         "all_concepts": monitor.scl.all_concepts,
         "final_sparse_concept_matrix": monitor.scl.sparse_concept_matrix.to_dense(),
         "final_coef": None if (coef := monitor.scl.linear_coef()) is None else np.ravel(coef),
-        # distinct (row, concept) cells requested from the annotators, cache-independent
-        "n_annotation_cells": {
-            "history": monitor.scl.n_annotation_cells_history,
-            "calib": monitor.scl.n_annotation_cells_calib,
-            "xt": monitor.scl.n_annotation_cells_xt,
-        },
         "elapsed_seconds": round(time.monotonic() - t_start, 1),
     }
 

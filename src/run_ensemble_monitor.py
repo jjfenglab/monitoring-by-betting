@@ -24,8 +24,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lam", type=float, default=0.5, help="Lambda for e-process betting (p_value)")
     p.add_argument("--max-m-statistic", type=float, default=250.0, help="Early stop threshold")
     p.add_argument("--stream-length", type=int, required=True,
-                   help="n_pre + n_post; the trajectory is NaN-padded to it so a run cut short "
-                        "by an input's stop is censored at the stream end, not at the cut")
+                   help="n_pre + n_post; under --combine m_statistic a run that never "
+                        "reaches --max-m-statistic must cover the whole stream (asserted)")
     p.add_argument("--out-debug-csv", type=Path, required=True)
     p.add_argument("--out-pkl", type=Path, required=True)
     p.add_argument("--log", type=Path, required=True)
@@ -73,7 +73,7 @@ def average_m_statistics(
     df2: pd.DataFrame,
     max_m_statistic: float,
 ) -> tuple[pd.DataFrame, np.ndarray, bool]:
-    """Average the two e-detectors' M_statistic (itself an e-detector) over their common steps.
+    """Average the two e-detectors' M_statistic (itself an e-detector), zero-padding the shorter input.
 
     Once either input reaches its cap c, the average is >= c / 2, so every threshold up to
     half the smaller input cap is crossed before the trajectory ends.
@@ -142,7 +142,6 @@ def main() -> None:
             "stopped_early": stopped_early,
         },
         "llm_usage": {},
-        "n_annotation_cells": {},
     }
     with args.out_pkl.open("wb") as f:
         pickle.dump(result, f)

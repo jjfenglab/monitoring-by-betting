@@ -2,8 +2,8 @@
 
 Dataset-agnostic: used by exp_ai_scribe to pull out the "p0_sae" slice that
 src/assemble_ai_scribe.py carves off the p0 pool, so the SAE trains on a set
-of documents disjoint from every stream's "p0" draws (see
-exp_ai_scribe/README.md "SAE training side").
+of documents disjoint from every stream's "p0" draws (see the
+src/assemble_ai_scribe.py module docstring).
 """
 
 from __future__ import annotations

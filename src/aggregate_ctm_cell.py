@@ -2,7 +2,7 @@
 `compute_summary`, write `summary.csv`.
 
 Sibling of aggregate_cell.py. The metrics transfer unchanged -- compute_summary reads only
-res["history"]["traj"] -- but the descriptive columns do not: a CTM run has none of the six
+res["history"]["traj"] -- but the descriptive columns do not: a CTM run has none of the
 SCL config fields aggregate_cell.py pulls, and carries scorer/jump_rates instead.
 """
 
@@ -145,8 +145,8 @@ def main() -> None:
         n_burn_in=config.n_burn_in,
     )
 
-    # Native CTM columns only -- nothing faked to look like an SCL run. plot_exp_fakenotes
-    # builds the CTM method label from scorer/jump_rates.
+    # Native CTM columns only -- nothing faked to look like an SCL run. plot_cebab.py
+    # labels CTM series from scorer/variant/jump_rates.
     config_cols = {
         "scorer": config.scorer,
         "variant": config.variant,

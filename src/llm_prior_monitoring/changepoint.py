@@ -1,6 +1,8 @@
 """ChangepointLearner family: estimate the single most-likely changepoint
-in past observations, used to feed `t_hat` into e-process / e-detector updates.
+in past observations.
 
+SubsetScanSCL runs `MeanShiftChangepointLearner` inside
+`SubsetScanChangepointLearner` to pick t_hat and the concept subset together.
 """
 
 from __future__ import annotations
@@ -9,7 +11,6 @@ import abc
 import logging
 import numpy as np
 import ruptures as rpt
-import ot
 
 
 class ChangepointLearner(abc.ABC):
@@ -17,9 +18,7 @@ class ChangepointLearner(abc.ABC):
 
     `estimate(past)` returns the 0-indexed split `s` such that `past[:s]` is the
     pre-change segment and `past[s:]` is the post-change segment, or `None` when
-    the past is too short / inconclusive. Used to produce the `t_hat` argument
-    fed to e-process / e-detector `update(...)` calls (e.g.
-    `PermutationEProcess` reads `rho = t_hat / (t + 1)`).
+    the past is too short / inconclusive.
     """
 
     @abc.abstractmethod
@@ -38,9 +37,7 @@ class ChangepointLearner(abc.ABC):
     @property
     @abc.abstractmethod
     def min_history(self) -> int:
-        """Minimum `len(past)` at/above which `estimate` returns a non-None
-        split. The orchestrator asserts `n_burn_in >= min_history` so that
-        `t_hat` is guaranteed available once burn-in completes."""
+        """Minimum `len(past)` at/above which `estimate` returns a non-None split."""
 
     def whiten(self, x: np.ndarray, eps=0.1) -> np.ndarray:
         x_mean = x.mean(axis=0, keepdims=True)
@@ -283,189 +280,6 @@ class KernelCPDLearner(ChangepointLearner):
         return best_s, best_stat
 
 
-def _sw_pp(proj_pre: np.ndarray, proj_post: np.ndarray, p: int) -> float:
-    """Mean W_p^p over all projection directions.
-
-    Args:
-        proj_pre:  (n1, n_dirs) projected pre-segment observations.
-        proj_post: (n2, n_dirs) projected post-segment observations.
-        p: Wasserstein order (1 or 2).
-
-    Returns:
-        Scalar: average over directions of the 1D p-Wasserstein distance^p.
-    """
-    n1, n2 = len(proj_pre), len(proj_post)
-    # Common quantile grid with n1+n2-1 interior points to interpolate both CDFs.
-    t = np.linspace(0, 1, n1 + n2 + 1)[1:-1]
-    # Sort each direction column; then evaluate quantiles vectorised over directions.
-    qa = np.quantile(np.sort(proj_pre, axis=0), t, axis=0)   # (n1+n2-1, n_dirs)
-    qb = np.quantile(np.sort(proj_post, axis=0), t, axis=0)  # (n1+n2-1, n_dirs)
-    return float(np.mean(np.abs(qa - qb) ** p))
-
-
-class SlicedWassersteinCPDLearner(ChangepointLearner):
-    """Sliced-Wasserstein changepoint estimator.
-
-    Scans candidate splits τ with the statistic
-        T(τ) = (n₁n₂/n) · SW_p^p(past[:τ], past[τ:])
-    where SW_p^p = (1/n_dirs) Σ_θ W_p^p(θᵀpast[:τ], θᵀpast[τ:]).
-
-    The (n₁n₂/n) factor corrects for boundary variance — small segments have
-    noisy SW estimates — so the scan is not biased toward edge or mid splits.
-    This mirrors E-Divisive's Q statistic (Matteson & James 2014).
-
-    Two direction modes:
-    - "stored": directions fixed after first call (random or user-supplied);
-      projections cached incrementally, one new row per step.
-    - "random": fresh random directions each call via ot.sliced_wasserstein_distance;
-      no projection cache.
-
-    Args:
-        n_dirs: number of projection directions.
-        directions: (n_dirs, d) array of user-supplied directions.  If given,
-            used as the initial stored directions (overrides random generation).
-        p: Wasserstein order (1 or 2).
-        direction_mode: "stored" or "random".
-        min_block: minimum observations required on each side of any split.
-        candidate_step: stride between candidate split positions.
-        seed: random seed for direction generation and random mode.
-    """
-
-    def __init__(
-        self,
-        n_dirs: int = 20,
-        directions: np.ndarray | None = None,
-        p: int = 2,
-        direction_mode: str = "stored",
-        min_block: int = 5,
-        candidate_step: int = 5,
-        seed: int = 42,
-        static_features: bool = True,
-    ):
-        assert direction_mode in ("stored", "random"), (
-            f"direction_mode must be 'stored' or 'random', got {direction_mode!r}"
-        )
-        assert p in (1, 2), f"p must be 1 or 2, got {p}"
-        assert min_block >= 2, f"min_block must be >= 2, got {min_block}"
-        assert candidate_step >= 1, f"candidate_step must be >= 1, got {candidate_step}"
-        self.n_dirs = n_dirs
-        self.p = p
-        self.direction_mode = direction_mode
-        self.min_block = min_block
-        self.candidate_step = candidate_step
-        # When features are not static (concept space grows/refits each step), the
-        # stored directions + projection cache are invalid; reset them each estimate().
-        self.static_features = static_features
-        self._rng = np.random.default_rng(seed)
-
-        self._stored_dirs: np.ndarray | None = None
-        if directions is not None:
-            self._stored_dirs = self._normalise(directions)
-        self._proj_cache: np.ndarray | None = None  # (n_seen, n_dirs)
-        self._n_seen: int = 0
-
-    @property
-    def min_history(self) -> int:
-        return 2 * self.min_block
-
-    @staticmethod
-    def _normalise(dirs: np.ndarray) -> np.ndarray:
-        norms = np.linalg.norm(dirs, axis=1, keepdims=True)
-        assert np.all(norms > 0), "directions must be non-zero"
-        return dirs / norms
-
-    def _extend_proj_cache(self, past: np.ndarray) -> None:
-        """Project observations past[_n_seen:] onto stored directions and cache."""
-        for i in range(self._n_seen, len(past)):
-            proj_row = past[i] @ self._stored_dirs.T   # shape (n_dirs,)
-            if self._proj_cache is None:
-                self._proj_cache = proj_row[None, :]
-            else:
-                self._proj_cache = np.vstack([self._proj_cache, proj_row])
-
-    def estimate(
-        self,
-        past: np.ndarray,
-        directions: np.ndarray | None = None,
-    ) -> int | None:
-        """Estimate the single most-likely changepoint split.
-
-        Args:
-            past: (n, d) array of past observations (does not include current x_t).
-            directions: optional (n_dirs, d) override; updates stored directions
-                and invalidates the projection cache.
-        """
-        split, _ = self.estimate_with_statistic(past, directions)
-        return split
-
-    def estimate_with_statistic(
-        self,
-        past: np.ndarray,
-        directions: np.ndarray | None = None,
-    ) -> tuple[int | None, float]:
-        """Estimate changepoint split and return (split, statistic_value).
-
-        Args:
-            past: (n, d) array of past observations (does not include current x_t).
-            directions: optional (n_dirs, d) override; updates stored directions
-                and invalidates the projection cache.
-        """
-        n = len(past)
-        if n < 2 * self.min_block:
-            return None, -np.inf
-
-        if self.direction_mode == "random":
-            return self._estimate_random_with_statistic(past)
-
-        # --- stored mode ---
-        if not self.static_features:
-            self._stored_dirs = None
-            self._proj_cache = None
-            self._n_seen = 0
-
-        if directions is not None:
-            self._stored_dirs = self._normalise(directions)
-            self._proj_cache = None
-            self._n_seen = 0
-        elif self._stored_dirs is None:
-            d = past.shape[1]
-            raw = self._rng.standard_normal((self.n_dirs, d))
-            self._stored_dirs = self._normalise(raw)
-
-        self._extend_proj_cache(past)
-        self._n_seen = n
-
-        best_s: int | None = None
-        best_T = -np.inf
-        for s in range(self.min_block, n - self.min_block + 1, self.candidate_step):
-            n1, n2 = s, n - s
-            sw_pp = _sw_pp(self._proj_cache[:s], self._proj_cache[s:], self.p)
-            T = (n1 * n2 / n) * sw_pp
-            if T > best_T:
-                best_T = T
-                best_s = s
-        return best_s, best_T
-
-    def _estimate_random_with_statistic(self, past: np.ndarray) -> tuple[int | None, float]:
-        """Random-direction mode: delegate per-split SW to POT."""
-        n = len(past)
-        best_s: int | None = None
-        best_T = -np.inf
-        for s in range(self.min_block, n - self.min_block + 1, self.candidate_step):
-            n1, n2 = s, n - s
-            sw = ot.sliced_wasserstein_distance(
-                past[:s], past[s:],
-                n_projections=self.n_dirs,
-                seed=int(self._rng.integers(1_000_000)),
-                p=self.p,
-            )
-            T = (n1 * n2 / n) * sw ** self.p
-            if T > best_T:
-                best_T = T
-                best_s = s
-        return best_s, best_T
-
-
 class SubsetScanChangepointLearner(ChangepointLearner):
     """Joint feature selection and changepoint detection via subset scanning.
 
@@ -544,10 +358,6 @@ class SubsetScanChangepointLearner(ChangepointLearner):
         for s in range(self.base_learner.min_block, n - self.base_learner.min_block + 1):
             mean_before = past[:s].mean(axis=0)
             mean_after = past[s:].mean(axis=0)
-            # logging.info(f"split={s}")
-            # logging.info(f"mean_before={mean_before}")
-            # logging.info(f"mean_after={mean_after}")
-            # logging.info(f"diff={mean_after - mean_before}")
             sq_diff = (mean_before - mean_after) ** 2
             weight = s * (n - s) / n
 

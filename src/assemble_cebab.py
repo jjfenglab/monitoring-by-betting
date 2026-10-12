@@ -25,7 +25,6 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 
 from pool_builder import (
-    attribute_prevalences,
     choose_variant_per_group,
     setup_run_logging,
     split_groups,
@@ -170,7 +169,7 @@ def main() -> None:
     betas_pre["review_negative"] = 0.0
     provenance = {
         "population_csv": str(args.population_csv),
-        "shift": "mention removal via p1-side variant selection",
+        "shift": "mention addition via p1-side variant selection",
         "shift_aspect": args.shift_aspect,
         "side_fracs": {"sae": args.side_fracs[0], "p0": args.side_fracs[1],
                        "p1": args.side_fracs[2]},

@@ -308,10 +308,8 @@ class ConformalSRDetector:
     paper is why we recurse rather than evaluate the sum directly -- the naive form underflows
     once S_n decays past 5e-324, visibly breaking around n = 2e5 in its Figure 13.
 
-    Matches SharedLEDetector's documented identity, but as an O(1)-memory scalar
-    recursion: that class reaches the same arithmetic only via a stateful probe of
-    components[0] -- a contract its docstring does not promise -- and stores
-    history_components at O(T^2).
+    Matches SharedLEDetector's value, but as an O(1)-memory scalar recursion: that
+    class keeps one e-process per post-burn-in step and sums them (O(t) work per step).
 
     Threshold semantics: M_t - t is a martingale with M_0 = 0, so E[M_t] = t under H0 and
     E[tau_1] >= threshold for any threshold > 1 (Prop 4.2). The threshold IS the nominal

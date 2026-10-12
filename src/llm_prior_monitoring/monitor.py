@@ -1,4 +1,4 @@
-"""AdaptiveMonitoring orchestrator: composes the four learnable parts.
+"""AdaptiveMonitoring orchestrator: one SequentialConceptLearner feeding one EDetector.
 
 One instance per stream. Each step drives:
   SequentialConceptLearner -> EDetector
@@ -14,7 +14,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .concept_lifecycle import CsvRecorder
 from .e_detector import EDetector
 from .sequential_concept_learner import SequentialConceptLearner
 
@@ -24,21 +23,17 @@ litellm.drop_params = True
 log = logging.getLogger(__name__)
 
 
-def _nan_frac(arr: np.ndarray) -> float:
-    """Fraction of NaN (imputed-not-annotated) entries; NaN for an empty array."""
-    return float(np.mean(np.isnan(arr))) if arr.size else float("nan")
-
-
 class AdaptiveMonitoring:
-    """Per-step monitoring loop composing the four learnable parts.
+    """Per-step monitoring loop: SCL update, then the e-detector bet.
 
     Owns the rolling `structured_history` (embeddings) and `unstructured_history_df` (text + labels),
     both fed to SCL each step. The e_detector owns the running M-statistic
     and per-step trajectory.
 
-    Composition order each step (PAST structured_history -> t_hat -> scl.update ->
-    p_t/p_null -> e_detector -> append structured_obs_t to structured_history) enforces predictable
-    scoring: every fit at step t sees only data through t-1.
+    Composition order each step (PAST structured_history -> scl.update, which picks the
+    concepts and t_hat -> p_t/p_null -> e_detector -> append structured_obs_t to
+    structured_history) enforces predictable scoring: every fit at step t sees only data
+    through t-1.
     """
 
     def __init__(
@@ -49,13 +44,12 @@ class AdaptiveMonitoring:
         n_burn_in: int = 1,
         debug_csv: Path | None = None,
         matrix_snapshot_dir: Path | None = None,
-        concept_lifecycle_recorder: CsvRecorder | None = None,
     ):
         assert cp_feature_source in ("embedding", "concept"), (
             f"cp_feature_source must be 'embedding' or 'concept', got {cp_feature_source!r}"
         )
         assert e_detector.n_burn_in == n_burn_in, (
-            f"LLMGuidedMonitoring.n_burn_in ({n_burn_in}) must match "
+            f"AdaptiveMonitoring.n_burn_in ({n_burn_in}) must match "
             f"e_detector.n_burn_in ({e_detector.n_burn_in})"
         )
         self.scl = sequential_concept_learner
@@ -70,9 +64,6 @@ class AdaptiveMonitoring:
         self.debug_csv = debug_csv
         self.matrix_snapshot_dir = matrix_snapshot_dir
         self.snapshot_files: list[str] = []
-        # concept_lifecycle.csv writer; the SCL owns the episode/removal writers
-        # because it is where concepts are proposed and removed.
-        self.concept_lifecycle_recorder = concept_lifecycle_recorder
         self.debug_records: list[dict] = []
         self._alarmed = False
 
@@ -98,7 +89,7 @@ class AdaptiveMonitoring:
         self.e_detector.update()
         self._record_debug(
             None, float("nan"), None, n_before, len(self.scl.all_concepts),
-            [], float("nan"), true_group=unstructured_obs_t.get("true_group"),
+            [], true_group=unstructured_obs_t.get("true_group"),
             source_idx=unstructured_obs_t.get("source_idx")
         )
         self._append(structured_obs_t, unstructured_obs_t)
@@ -127,8 +118,7 @@ class AdaptiveMonitoring:
         assert n_after > 0, "post-burn-in SCL must have fitted concepts"
 
         # Snapshot the exact feature set the classifier was fit on for this step's p_t:
-        # pre-removal under detect_then_remove (removal happens in 5c below), post-removal
-        # under remove_then_detect (removal already ran inside scl.update).
+        # the concepts left after the subset scan's pruning inside scl.update.
         active_concepts = [c["concept"] for c in self.scl.all_concepts]
         
         if self.matrix_snapshot_dir is not None:
@@ -151,13 +141,6 @@ class AdaptiveMonitoring:
         self.e_detector.update(p_t, p_null=p_null)
 
         # 4. Logging.
-        # if (self.concept_lifecycle_recorder is not None
-        #         and self.concept_lifecycle_recorder.enabled):
-        #     self.concept_lifecycle_recorder.record(
-        #         self.scl.build_lifecycle_rows(
-        #             self.t, observed_concepts_xt, set())
-        #     )
-        
         self._record_debug(
             t_hat,
             p_t,
@@ -165,7 +148,6 @@ class AdaptiveMonitoring:
             n_before,
             n_after,
             active_concepts,
-            _nan_frac(observed_concepts_xt),
             true_group=unstructured_obs_t.get("true_group"),
             source_idx=unstructured_obs_t.get("source_idx")
         )
@@ -213,7 +195,6 @@ class AdaptiveMonitoring:
         n_before: int,
         n_after: int,
         active_concepts: list[str],
-        xt_missing_rate: float,
         true_group: int | None = None,
         source_idx: int | None = None,
     ) -> None:
@@ -222,8 +203,8 @@ class AdaptiveMonitoring:
         Called after the e_detector step so L_t / M_statistic are current.
         """
         t_hat = self.t_hat_history[-1] if self.t_hat_history else float("nan")
-        # Added/removed come from the SCL's explicit per-step lists: with fixed-size
-        # removal the count no longer only grows, so all_concepts[n_before:] is wrong.
+        # Added/removed come from the SCL's explicit per-step lists: with subset-scan
+        # pruning the count no longer only grows, so all_concepts[n_before:] is wrong.
         new_concepts = [c["concept"] for c in self.scl.last_added_concepts]
         removed_concepts = [c["concept"] for c in self.scl.last_removed_concepts]
         # Mock-only: is_informative is stamped at proposal by MockConceptSelector;
@@ -259,7 +240,7 @@ class AdaptiveMonitoring:
             "M_statistic": M,
             "n_new_concepts": len(new_concepts),
             "new_concepts": ";".join(new_concepts),
-            # active_concepts is the pre-removal set the classifier was fit on for
+            # active_concepts is the post-pruning set the classifier was fit on for
             # this step's p_t (snapshotted in _step_active), so n_concepts == its size.
             "n_concepts": n_after,
             "active_concepts": ";".join(active_concepts),
@@ -281,36 +262,9 @@ class AdaptiveMonitoring:
             "frac_weak_removed": (
                 n_weak_removed / n_weak_active if n_weak_active else float("nan")
             ),
-            "removal_variant": (
-                self.scl.removal_rule if self.scl.removal_rule != "greedy"
-                else ("greedy_1" if self.scl.greedy_group_size == 1 else "greedy_n")
-            ),
             "scl_variant": self.scl.scl_variant,
-            # remove_then_detect only; NaN for detect_then_remove and burn-in steps.
-            "n_sample_rows_annotated": self.scl.last_fit_debug.get("n_sample_rows_annotated", float("nan")),
-            # Anchors added beyond the t_hat window; drops when t_hat sits near an end.
-            "n_anchor_rows_annotated": self.scl.last_fit_debug.get(
-                "n_anchor_rows_annotated", float("nan")),
-            "n_restricted_fit_rows": self.scl.last_fit_debug.get("n_restricted_fit_rows", float("nan")),
-            "n_topup_cells": self.scl.last_fit_debug.get("n_topup_cells", float("nan")),
-            "n_calib_cells": self.scl.last_fit_debug.get("n_calib_cells", float("nan")),
-            # cumulative distinct history cells requested so far (cost-vs-t curve)
-            "n_annotation_cells_history": self.scl.last_fit_debug.get(
-                "n_annotation_cells_history", float("nan")),
-            "restricted_fit_converged": self.scl.last_fit_debug.get("restricted_fit_converged", float("nan")),
             "classifier_n_nonzero": n_nonzero,
             "classifier_converged": converged,
-            # What p_null actually scored on (remove_then_detect only; NaN elsewhere).
-            # calib_reveal_missing_rate should equal xt_missing_rate wherever
-            # n_calib_rows_short == 0 -- that equality is the bet's validity condition.
-            "n_calib_reveal_target": self.scl.last_fit_debug.get(
-                "n_calib_reveal_target", float("nan")),
-            "n_calib_reveal_mean": self.scl.last_fit_debug.get(
-                "n_calib_reveal_mean", float("nan")),
-            "n_calib_rows_short": self.scl.last_fit_debug.get(
-                "n_calib_rows_short", float("nan")),
-            "calib_reveal_missing_rate": self.scl.last_fit_debug.get(
-                "calib_reveal_missing_rate", float("nan")),
             # Online-SAE warm-start diagnostics on refit steps; NaN otherwise.
             "sae_refit_loss": self.scl.last_fit_debug.get("sae_refit_loss", float("nan")),
             "sae_dead_ratio": self.scl.last_fit_debug.get("sae_dead_ratio", float("nan")),

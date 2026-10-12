@@ -22,9 +22,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    # history_sample_size stays text so cells without it (NaN) do not turn "100" into 100.0
-    df = pd.concat([pd.read_csv(f, dtype={"history_sample_size": str}) for f in args.input_csv],
-                   ignore_index=True)
+    df = pd.concat([pd.read_csv(f) for f in args.input_csv], ignore_index=True)
     if args.groupby_cols:
         df = df.groupby(args.groupby_cols).mean(numeric_only=True).reset_index()
     args.out_csv.parent.mkdir(parents=True, exist_ok=True)
