@@ -6,19 +6,6 @@ are the user's own pre-split, gitignored source files. Each row carries at
 least two text columns -- an AI-generated draft note and the clinician's
 final/updated note -- and --text-mode picks what gets embedded and monitored:
 
-  draft_only        : just the draft column (e.g. abr_1_hpi)
-  final_only         : just the clinician-final column (e.g. abr_upd_hpi)
-  draft_plus_final   : both columns, tagged and concatenated into one string:
-                       "<ai_draft>...</ai_draft><final_note>...</final_note>"
-  diff               : only the edit itself -- diff-match-patch's changed spans
-                       between draft and final, tagged and joined by " ... ":
-                       "<del>removed</del> ... <ins>added</ins>". Unchanged text is
-                       dropped entirely, so a note with no clinician edits produces
-                       an empty string.
-  draft_plus_diff    : the full draft followed by the diff:
-                       "<ai_draft>...</ai_draft><changes><del>...</del> ... <ins>...</ins></changes>"
-  draft_diff_inline  : the full draft with character-level <del>/<ins> edits inline
-  draft_diff_inline_word : the same, but diffed word by word
   diff_structured    : the draft, then each edit numbered as BEFORE/AFTER lines with
                        3 words of context on each side
 
@@ -51,76 +38,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from diff_match_patch import diff_match_patch
 from sentence_transformers import SentenceTransformer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data import embed
 
-TEXT_MODES = ("draft_only", "final_only", "draft_plus_final", "diff", "draft_plus_diff", "draft_diff_inline", "draft_diff_inline_word", "diff_structured")
-
-
-def diff_only(draft: str, final: str) -> str:
-    """Just the changed spans between draft and final, tagged and joined by ' ... '.
-
-    Uses diff-match-patch's diff_cleanupSemantic to merge fragmented
-    character-level edits into human-readable, phrase-aligned chunks --
-    important for prose, where a raw character diff tends to be choppy
-    (e.g. splitting mid-word) unless pre-tokenized by word first.
-    """
-    dmp = diff_match_patch()
-    diffs = dmp.diff_main(draft, final)
-    dmp.diff_cleanupSemantic(diffs)
-    changed = []
-    for op, text in diffs:
-        if op == -1:
-            changed.append(f"<del>{text}</del>")
-        elif op == 1:
-            changed.append(f"<ins>{text}</ins>")
-    return " ... ".join(changed)
-
-def diff_inline(draft: str, final: str) -> str:
-    """Full text with changes marked inline (character-level)."""
-    dmp = diff_match_patch()
-    diffs = dmp.diff_main(draft, final)
-    dmp.diff_cleanupSemantic(diffs)
-    parts = []
-    for op, text in diffs:
-        if op == 0:
-            parts.append(text)
-        elif op == -1:
-            parts.append(f"<del>{text}</del>")
-        elif op == 1:
-            parts.append(f"<ins>{text}</ins>")
-    return "".join(parts)
-
-
-def diff_inline_word(draft: str, final: str) -> str:
-    """Full text with changes marked inline (word-level).
-
-    Uses difflib.SequenceMatcher for true word-level diffing.
-    E.g., "2/26/26" -> "2/20/26" becomes "<del>2/26/26</del> <ins>2/20/26</ins>"
-    instead of character-level "2/2<del>6</del><ins>0</ins>/26".
-    """
-    draft_words = re.findall(r'\S+', draft)
-    final_words = re.findall(r'\S+', final)
-
-    matcher = difflib.SequenceMatcher(None, draft_words, final_words)
-    parts = []
-
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == "equal":
-            parts.append(" ".join(draft_words[i1:i2]))
-        elif tag == "delete":
-            parts.append(f"<del>{' '.join(draft_words[i1:i2])}</del>")
-        elif tag == "insert":
-            parts.append(f"<ins>{' '.join(final_words[j1:j2])}</ins>")
-        elif tag == "replace":
-            parts.append(f"<del>{' '.join(draft_words[i1:i2])}</del>")
-            parts.append(f"<ins>{' '.join(final_words[j1:j2])}</ins>")
-
-    return " ".join(parts)
+TEXT_MODES = ("diff_structured",)
 
 
 def diff_structured(draft: str, final: str, tail_len: int = 3) -> str:
@@ -179,36 +103,7 @@ def diff_structured(draft: str, final: str, tail_len: int = 3) -> str:
 
 
 def build_text(df: pd.DataFrame, text_mode: str, draft_col: str, final_col: str) -> list[str]:
-    if text_mode == "draft_only":
-        return df[draft_col].astype(str).tolist()
-    elif text_mode == "final_only":
-        return df[final_col].astype(str).tolist()
-    elif text_mode == "draft_plus_final":
-        return [
-            f"<ai_draft>{d}</ai_draft><final_note>{f}</final_note>"
-            for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
-        ]
-    elif text_mode == "diff":
-        return [
-            diff_only(d, f)
-            for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
-        ]
-    elif text_mode == "draft_plus_diff":
-        return [
-            f"<ai_draft>{d}</ai_draft><changes>{diff_only(d, f)}</changes>"
-            for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
-        ]
-    elif text_mode == "draft_diff_inline":
-        return [
-            diff_inline(d, f)
-            for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
-        ]
-    elif text_mode == "draft_diff_inline_word":
-        return [
-            diff_inline_word(d, f)
-            for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
-        ]
-    elif text_mode == "diff_structured":
+    if text_mode == "diff_structured":
         return [
             diff_structured(d, f)
             for d, f in zip(df[draft_col].astype(str), df[final_col].astype(str))
