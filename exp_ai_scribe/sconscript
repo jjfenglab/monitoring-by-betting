@@ -492,12 +492,13 @@ def run_monitor(env, outdir, c):
             c["identity_debug_csvs"][c["run_seed"]] = targets[2]
     result = env.Command(targets, sources, _run_cmd(cmd, n_cpus=5 if c["concept_learner_type"] == "bertopic_llm" else 2))
     if c["concept_learner_type"] in LLM_LEARNER_TYPES:
-        seed0_cache = "_output/text_mode_diff_structured/Rheumatology-2026-02-25/kcalib_30/post_p1_1.0/seed_0/cache.db"
-        assert os.path.exists(seed0_cache)
-        if not os.path.exists(stream_cache):
-            print("STREAM CACHE DOES NOT EXIST", stream_cache)
-            if "seed_0" != c["run_seed"]:
-                shutil.copy(seed0_cache, stream_cache)
+        # NOTE: For external use, this step is not necessary. Just for cache money savings
+        # seed0_cache = "_output/text_mode_diff_structured/Rheumatology-2026-02-25/kcalib_30/post_p1_1.0/seed_0/cache.db"
+        # assert os.path.exists(seed0_cache)
+        # if not os.path.exists(stream_cache):
+        #     print("STREAM CACHE DOES NOT EXIST", stream_cache)
+        #     if "seed_0" != c["run_seed"]:
+        #         shutil.copy(seed0_cache, stream_cache)
         env.SideEffect(stream_cache, result)
     return result
 

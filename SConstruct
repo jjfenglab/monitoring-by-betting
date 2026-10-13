@@ -22,8 +22,8 @@ env.SConsignFile()
 
 EXPERIMENTS = [
     "exp_cebab",
-    "exp_ai_scribe",
-    "exp_cub",
+    # "exp_ai_scribe",
+    # "exp_cub",
 ]
 for flag in EXPERIMENTS:
     sc.SConscript(flag + "/sconscript", exports=["flag"])

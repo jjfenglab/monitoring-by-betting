@@ -102,6 +102,8 @@ CHANGEPOINT_FEATURE_DICT = {
 }
 
 CONCEPT_LEARNER_TYPES = [
+    "identity",
+    "sae",
     "bertopic_llm",
 ]
 LLM_LEARNER_TYPES = ["bertopic_llm"]

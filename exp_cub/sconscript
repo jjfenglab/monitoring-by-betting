@@ -253,11 +253,8 @@ CHANGEPOINT_FEATURE_DICT = {
 
 # --- concept learners ---
 CONCEPT_LEARNER_TYPES = [
-    "identity",  # our machinery on raw CLIP embeddings
-    # "mock",  # synthetic latent concepts on bertopic_llm's propose loop: LLM-free ceiling
-    "sae",  # frozen SAE on CLIP embeddings
-    # "sae_online",  # warm-started SAE
-    # "oracle_random_pool",  # oracle attributes + distractors
+    "identity",
+    "sae",
     "bertopic_llm",
 ]
 
@@ -381,7 +378,7 @@ def assemble_pools(env, outdir, c):
     """
     if exists(pool_path(c["config"], "embeddings.npz")):
         return None
-    # Image bytes are not declared (~12k files; a fixed download, not an edited input).
+    # NOTE: Download these CUB files prior to running scons
     sources = [
         path_join("data", "CUB_200_2011", "images.txt"),
         path_join("data", "CUB_200_2011", "image_class_labels.txt"),
