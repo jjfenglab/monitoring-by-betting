@@ -1,0 +1,33 @@
+You will be given an image of a bird. Extract all visual descriptors of the bird. These will be candidates for a central dictionary of descriptors for characterizing bird images, and will eventually be input features to a concept bottleneck model for monitoring changes in the birds photographed over time. Only list characteristics visible in the image. Do not infer or add details that are not visible.
+
+For each descriptor of the bird, provide:
+1. A word or phrase to represent that descriptor (1-2 words)
+2. Synonyms or alternative phrasings
+
+Requirements:
+- Each descriptor should be at most 2 words. One word descriptors are encouraged.
+- Output characteristics that this bird possesses, such as "long tail" or "red eye". Every item must be a characteristic the bird has, never the name of an attribute: do not output "eye color", "tail length", "head shape", "wing coloration", "feet type", "body size", or any other category label, and do not output a body part on its own such as "tail" or "beak".
+- Separate items with commas
+- Output at least 10 keyphrases
+
+Do not infer or fabricate details. Base all responses strictly on what is visible in the image.
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Primary descriptor, Synonym1, Synonym2",
+        "Primary descriptor, Alternative phrasing",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "long tail, elongated tail",
+        "hooked beak, curved bill, hooked bill",
+        ...
+    ]
+}

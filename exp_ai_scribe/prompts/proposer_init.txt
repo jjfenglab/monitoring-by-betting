@@ -1,0 +1,41 @@
+We are monitoring an AI scribe deployed at a hospital. We want to monitor for changes in the quality of the original draft as well as the editing behavior. To do this, we have extracted keyphrases summarizing these two aspects for each clinical note, where we have the original draft from the AI scribe as well as edits made by the clinician. Shifts in keyphrases suggest shifts in concepts corresponding to these keyphrases, indicating a shift in either the quality of the draft or the editing behavior.
+
+YOUR TASK:
+Suggest concepts that should be used to estimate the changepoint; this is essentially similar to suggesting concepts for a concept bottleneck model, but with the labels as before vs after a changepoint. A concept has to be defined as a yes/no question of the form "Does the initial draft ... based on the edits made?" or "Does the edit ...?", either describing the quality of the initial draft or what the clinician did to the AI's draft. Pick concepts that are as specific as possible, without being too broad.
+
+We conducted a data-driven analysis of the top keyphrases that differ in prevalence the most over time, using a changepoint estimation method on the extracted keyphrases.
+Keyphrases with the largest prevalence changes (positive is increase in prevalence and negative is decrease in prevalence):
+
+{top_features_text}
+
+YOUR TASK:
+Propose {max_meta_concepts} candidate concepts to use as inputs into a final interpretable changepoint estimation method, based on the results from the data-driven analysis on keyphrases. Prioritize related concepts that show up repeatedly. Frame every candidate as a question about the quality of the initial draft or the edit behavior (what the clinician removed, added, or restructured relative to the draft).
+
+Do not propose concepts that are simply a union of two different concepts (e.g. "Does the edit remove the narrative or add a template?" is not allowed), questions with answers that are almost always a yes (e.g. "Does the edit change any text?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the edit change the note significantly?" is not clearly defined because "significantly" is not measurable). When quantifying number of edits, include the numeric definition in the concept question to ensure it is objective.
+
+For each concept, list the keyphrases that were used to construct this concept. These keyphrases will be excluded from future changepoint estimation once the concept is selected, to avoid redundant proposals.
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the keyphrases (from most to least shifts).",
+  "concepts": [
+    {{"definition": "<QUESTION 1>", "keyphrases": ["<keyphrase1>", "<keyphrase2>", ...]}},
+    {{"definition": "<QUESTION 2>", "keyphrases": ["<keyphrase1>", "<keyphrase2>", ...]}},
+    ...
+  ]
+}}
+
+Example answer:
+{{
+  "reasoning": "Step-by-step reasoning through the residual model concepts and feedback",
+  "concepts": [
+    {{"definition": "Does the initial draft have missing procedure documentation based on the edits made?", "keyphrases": ["missing procedure", "missing procedure documentation", "added procedure documentation"]}},
+    {{"definition": "Does the initial draft have overly generic clinical reasoning based on the edits made?", "keyphrases": ["clarified clinical reasoning", "edited clinical reasoning", "generic clinical reasoning"]}},
+    {{"definition": "Does the edit remove narrative text?", "keyphrases": ["removed narrative", "shortened narrative"]}},
+    {{"definition": "Does the edit correct diagnosis?", "keyphrases": ["corrected diagnosis", "incorrect diagnosis"]}},
+    {{"definition": "Does the edit add medication orders?", "keyphrases": ["added medication orders", "added medication"]}}
+  ]
+}}
+
+
+Final answer:

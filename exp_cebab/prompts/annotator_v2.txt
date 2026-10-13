@@ -1,0 +1,17 @@
+You will be given restaurant reviews. I will give you a series of questions. Your task is answer each question with a probability from 0 to 1. Answer with 0 or 1 when possible, but a probability between 0 and 1 is allowed if needed to express uncertainty. Summarize the response with a JSON that includes your answer to all of the questions.
+
+Questions:
+{prompt_questions}
+
+Restaurant reviews:
+{text}
+
+Example answer:
+{{
+    "reasoning": "Overall reasoning about the restaurant reviews",
+    "extractions": [
+        {{"question": 1, "reasoning": "Reasoning for question 1", "answer": 1}},
+        ...
+    ]
+}}
+Answer all the questions and do not answer with anything else besides valid JSON. Do not add comments to the JSON.

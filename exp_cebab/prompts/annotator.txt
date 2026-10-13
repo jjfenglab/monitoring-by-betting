@@ -1,0 +1,14 @@
+You will be given a restaurant review. Answer the following question with a probability from 0 to 1. Answer with 0 or 1 when possible, but a probability between 0 and 1 is allowed if needed to express uncertainty. Provide your response as a JSON.
+
+Question:
+{prompt_questions}
+
+Restaurant review:
+{text}
+
+Example answer:
+{{
+    "reasoning": "Reasoning for question 1",
+    "answer": 1
+}}
+Do not answer with anything else besides valid JSON. Do not add comments to the JSON.

@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.env
+
+# SCons bookkeeping
+.sconsign.dblite
+.sconf_temp/
+.scons/
+
+# Experiment outputs and caches (committed artifacts live under exp_*/data/ and
+# exp_*/tilt_selection/ instead).
+_output/
+*.db
+*.db.wal
+
+# Local HF model caches
+local_*/

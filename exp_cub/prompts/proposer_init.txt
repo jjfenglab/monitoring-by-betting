@@ -1,0 +1,45 @@
+We are monitoring for concepts that shift in prevalence in bird images that are captured over time. A concept has to be defined in terms of a yes/no question of the form "Does the bird in the image have...?". Pick concepts that are as specific as possible, without being too broad.
+
+We conducted a data-driven analysis of the top visual descriptors most associated with the outcome Y, as estimated using a changepoint estimation method on the extracted descriptors. These are the top extracted descriptors, in descending order of shift magnitude. Positive means the descriptor increased in prevalence while negative means the descriptor decreased in prevalence:
+
+{top_features_text}
+
+YOUR TASK:
+Suggest concepts that should be used to estimate the changepoint; this is essentially similar to suggesting concepts for a concept bottleneck model, but with the labels as before vs after a changepoint.
+Propose {max_meta_concepts} candidate concepts to use as inputs into a final interpretable changepoint estimation method, based on the results from the data-driven analysis on descriptors. Prioritize related concepts that show up repeatedly.
+
+Do not propose concepts that are simply a union of two different concepts (e.g. "Does the bird in the image have a red head or long legs?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the bird in the image have feathers?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the bird in the image look unusual?" is not clearly defined because unusual may mean many different things).
+
+For each concept, list the descriptors that were used to construct this concept. These descriptors will be excluded from future analyses once the concept is selected, to avoid redundant proposals.
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the model concepts (from most to least predictive).",
+  "concepts": [
+    {{"definition": "<QUESTION 1>", "keyphrases": ["<descriptor1>", "<descriptor2>", ...]}},
+    {{"definition": "<QUESTION 2>", "keyphrases": ["<descriptor1>", "<descriptor2>", ...]}},
+    ...
+  ]
+}}
+
+Example answer:
+{{
+  "reasoning": "Step-by-step reasoning through the top shifted descriptors",
+  "concepts": [
+    {{
+      "definition": "Does the bird in the image have blue feathers?",
+      "keyphrases": ["blue feathers", "blue plumage"]
+    }},
+    {{
+      "definition": "Does the bird in the image have a curved beak?",
+      "keyphrases": ["curved beak", "hooked bill"]
+    }},
+    {{
+      "definition": "Does the bird in the image have a black tail?",
+      "keyphrases": ["black tail", "dark tail feathers"]
+    }}
+  ]
+}}
+
+
+Final answer:

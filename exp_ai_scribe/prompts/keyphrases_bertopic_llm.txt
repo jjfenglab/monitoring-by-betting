@@ -1,0 +1,101 @@
+We are monitoring an AI scribe deployed at a hospital. We want to monitor for changes in the quality of the original draft as well as the editing behavior. To do this, we are extracting keyphrases summarizing these two aspects for each clinical note. Shifts in the frequency of particular keyphrases will indicate shifts in either the quality of the draft or the editing behavior.
+
+The input below shows:
+1. ORIGINAL AI DRAFT: the full AI-generated draft
+2. EDITS: a numbered list of changes. Each edit shows:
+   - BEFORE: surrounding context from the draft with <del>deleted text</del>
+   - AFTER: surrounding context with <ins>inserted text</ins>
+
+Evaluate deficiencies in the initial AI draft only based on clinician edits. Insertions alone usually indicate information that was missing from the AI draft. Deletions alone usually indicate the AI draft had unnecessary, incorrect, or unsupported content. For edits with both deletions and insertions, evaluate the semantic difference between old and new rather than treating them independently.
+
+YOUR TASK:
+Extract all keyphrases describing (1) the quality of the initial draft, (2) the editing behavior to this clinical note, and (3) overall amount of editing. The initial draft was from an AI scribe and then was edited by a clinician to become the final note. Only list keyphrases that characterize what was explicitly evidenced in the clinical note.
+
+(1) QUALITY OF INITIAL DRAFT:
+Draft keyphrases describe WHAT WAS DEFICIENT about the AI draft that necessitated editing with the general format of <DEFICIENCY> <CONTENT>.
+
+Deficiency include but are not limited to:
+- missing: required content that was entirely absent from the draft, so edits added this in
+- incomplete: content was present but lacked key details, so edits added more details
+- unnecessary: language that is unnecessary for inclusion in the clinical note, so edits deleted such text
+- incorrect: factually wrong information (e.g., wrong medication name, wrong diagnosis), so edits corrected this information
+- verbose: unnecessarily long content without adding clinical value, so edits shortened the text
+
+For content, use UMLS-aligned categories or you may also describe deficiencies related to the overall note, e.g.,
+* diagnosis
+* treatment plan
+* medication orders
+* procedure details
+* patient history
+* symptoms
+* note structure
+
+(2) EDITING BEHAVIOR:
+Edits should generally be described using the format of <action> <content>:
+
+Actions include but are not limited to:
+- added: new content inserted
+- removed: content deleted  
+- corrected: factual error fixed (edit in clinical meaning)
+- clarified: ambiguous content made more precise (edit in clinical meaning)
+- condensed: content shortened without information loss (primarily a stylistic edit)
+- restructured: organization or formatting changed (primarily a stylistic edit)
+- edited: this is a generalization of all the prior actions, which should be used when listing generalizastions of the edit.
+
+For content, follow similar instructions as above.
+
+Avoid:
+- Too specific: "added walker use information" → use "added patient instructions"
+- Too general: "clinical edits" → use "added treatment plan"
+
+(3) AMOUNT OF EDITING:
+Provide number of clinical and sylistic edits in a way that is objective. To do this, include the <number of edits> <edit type>
+* examples: "sparse (1-2) stylistic edits", "no clinical edits", "substantial (4+) edits to note"
+
+# Requirements:
+- Each keyphrase should generally be no more than 4-5 words.
+- Keyphrases should focus on editing behavior and what needed editing, not what the note is about.
+- For each keyphrase, additionally list specific terms, synonyms, and increasingly general concepts.
+- Separate keyphrases and its generalizations with commas
+
+Note to analyze, which show the changes made to the AI scribe's draft to become the final clinician-edited version:
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the text.
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Primary descriptor, Synonym1, Synonym2, Broader category",
+        "Primary descriptor, Alternative phrasing, More general concept",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "missing procedure documentation, missing procedure details, missing documentation",
+        "incomplete medication orders, incomplete prescriptions, incomplete orders",
+        "redundant problem entries, redundant diagnoses, redundant content",
+        "incorrect medication name, incorrect medication, incorrect orders",
+        "verbose treatment discussion, verbose explanation, verbose content",
+        "missing patient history, missing history, missing context",
+        "incomplete follow-up plan, incomplete plan, incomplete instructions",
+        "added MRI order, added imaging order, added diagnostic workup, edited imaging order, edited diagnostic workup",
+        "added medication prescription, added medication order, added treatment, edited treatment",
+        "corrected exam findings, corrected exam results, corrected results, edited exam results, edited results",
+        "corrected diagnosis, edited diagnosis",
+        "added patient instructions, added discharge instructions, edited AVS",
+        "condensed HPI narrative, condensed narrative, restructured note, edited narrative",
+        "added referral, added care coordination, edited referral, edited care coordination",
+        "corrected differential list, corrected differential diagnosis, corrected diagnostic reasoning, edited diagnostic reasoning",
+        "added follow-up, added care plan, edited care plan",
+        "removed patient discussion, removed patient counseling, edited patient discussion",
+        "few (3-4) clinical edits",
+        "no stylistic edits"
+
+    ]
+}

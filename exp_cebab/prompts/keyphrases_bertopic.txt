@@ -1,0 +1,34 @@
+Extract all concepts mentioned in this restaurant review. These will be clustered by a topic model to identify themes, so focus on extracting distinct concepts without grouping synonyms together.
+
+For each concept mentioned in the review:
+- Use a short phrase (1-3 words) that captures the specific concept
+- Only list factors explicitly mentioned in the review
+
+Requirements:
+- Each keyphrase should be 1-3 words
+- Focus on factors relevant to the dining experience
+- Do not infer or fabricate details
+
+Review(s):
+"{note}"
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "keyphrase1",
+        "keyphrase2",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "The review mentions decor, location difficulty, and service speed",
+    "keyphrases": [
+        "ugly decor",
+        "hard to find",
+        "slow service",
+        "good pasta"
+    ]
+}

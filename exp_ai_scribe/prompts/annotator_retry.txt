@@ -1,0 +1,24 @@
+You are analyzing edits made by a clinician to an AI-generated clinical note draft. The input below shows:
+1. ORIGINAL AI DRAFT: the full AI-generated draft
+2. EDITS: a numbered list of changes. Each edit shows:
+   - BEFORE: surrounding context from the draft with <del>deleted text</del>
+   - AFTER: surrounding context with <ins>inserted text</ins>
+
+Evaluate deficiencies in the initial AI draft only based on clinician edits. Insertions alone usually indicate information that was missing from the AI draft. Deletions alone usually indicate the AI draft had unnecessary, incorrect, or unsupported content. For edits with both deletions and insertions, evaluate the semantic difference between old and new rather than treating them independently.
+
+I will give you a yes/no question about the quality of the initial draft and/or the edit behavior. Answer the question with a probability from 0 to 1.  Answer with 0 or 1 when possible, but a probability between 0 and 1 is allowed if needed to express uncertainty. Summarize the response with a JSON that includes your answer.
+
+Questions:
+{prompt_questions}
+
+Clinical note with diffs:
+{text}
+
+Example answer:
+{{
+    "reasoning": "Reasoning for question 1",
+    "answer": 1
+}}
+Do not answer with anything else besides valid JSON. Do not add comments to the JSON.
+
+IMPORTANT: To ensure valid JSON, use only single quotes (') inside string values, never double quotes. Escape any special characters properly.
