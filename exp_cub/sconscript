@@ -1032,7 +1032,10 @@ nest.pop("changepoint_learner")
 # === Ensemble: combine bertopic_llm and identity monitors ===
 def _ensemble_seeds(c):
     """Seeds available in both bertopic_llm and identity debug.csv dicts."""
-    return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
+    if "bertopic_llm" in CONCEPT_LEARNER_TYPES:
+        return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
+    else:
+        return []
 
 
 # Two ways to combine the inputs: "ensemble" averages their per-step p-values and
@@ -1095,6 +1098,8 @@ nest.pop("ensemble_seed")
 @nest.add_target_with_env(localenv)
 def ensemble_cell_summary(env, outdir, c):
     """Summarize ensemble results across seeds, once per epsilon."""
+    if len(c["ensemble_result_pkls"]) == 0:
+        return
     nodes = []
     for eps in POST_P1_FRACTIONS:
         eps_result_pkls = [

@@ -682,7 +682,10 @@ nest.pop("changepoint_learner")
 
 
 def _ensemble_seeds(c):
-    return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
+    if "bertopic_llm" in CONCEPT_LEARNER_TYPES:
+        return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
+    else:
+        return []
 
 
 ENSEMBLE_COMBINE = {
@@ -738,6 +741,8 @@ nest.pop("ensemble_seed")
 
 @nest.add_target_with_env(localenv)
 def ensemble_cell_summary(env, outdir, c):
+    if len(c["ensemble_result_pkls"]) == 0:
+        return
     sources = [c["create_ensemble_config"][0]] + c["ensemble_result_pkls"]
     shift_res_glob = path_join(
         "exp_cebab", OUTDIR,
