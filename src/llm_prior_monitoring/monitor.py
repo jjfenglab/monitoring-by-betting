@@ -20,6 +20,8 @@ from .sequential_concept_learner import SequentialConceptLearner
 import litellm
 litellm.drop_params = True
 
+litellm.model_cost["us.anthropic.claude-haiku-5-5"]["supports_native_structured_output"] = True
+
 log = logging.getLogger(__name__)
 
 

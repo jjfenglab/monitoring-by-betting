@@ -22,8 +22,12 @@ env.SConsignFile()
 
 EXPERIMENTS = [
     "exp_cebab",
-    # "exp_ai_scribe",
-    # "exp_cub",
+    "exp_ai_scribe",
+    "exp_cub",
 ]
+# `scons ... experiments=exp_cebab` loads only the named (comma-separated) experiments.
+selected = sc.ARGUMENTS.get("experiments")
+if selected:
+    EXPERIMENTS = selected.split(",")
 for flag in EXPERIMENTS:
     sc.SConscript(flag + "/sconscript", exports=["flag"])

@@ -17,7 +17,11 @@
   "values": {
     "family": {
       "LGM": "Adaptive Monitor",
-      "CTM": "Conformal test martingale"
+      "CTM": "Conformal test martingale",
+      "MMD": "Online MMD",
+      "LSDD": "Online LSDD",
+      "KS_SHARE": "Online KS share",
+      "COSINE": "Online cosine distance"
     },
     "cp_feature_source": {
       "embedding": "Embeddings",
@@ -76,18 +80,26 @@
     }
   },
   "series_short_names": [
-    {"name": "oracle adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_true"}},
-    {"name": "oracle-all8 adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_all8"}},
-    {"name": "oracle-pool adaptive", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_random_pool"}},
-    {"name": "LLM+BERTopic adaptive", "match": {"family": "LGM", "concept_learner_type": "bertopic_llm"}},
-    {"name": "Ensemble adaptive", "match": {"family": "LGM", "concept_learner_type": "ensemble_m"}},
-    {"name": "simulated adaptive", "match": {"family": "LGM", "concept_learner_type": "mock"}},
-    {"name": "SAE-online adaptive", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "online"}},
-    {"name": "SAE adaptive", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "frozen"}},
-    {"name": "Embedding adaptive", "match": {"family": "LGM", "concept_learner_type": "identity"}},
+    {"name": "LLM-concept (Haiku)", "match": {"family": "LGM", "concept_learner_type": "bertopic_llm", "llm_model": "bedrock/us.anthropic.claude-haiku-5-5"}},
+    {"name": "LLM-concept (wine prompt)", "match": {"family": "LGM", "concept_learner_type": "bertopic_llm", "prompt_variant": "wine_examples"}},
+    {"name": "LLM-concept", "match": {"family": "LGM", "concept_learner_type": "bertopic_llm"}},
+    {"name": "SAE", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "frozen"}},
+    {"name": "SAE-online", "match": {"family": "LGM", "concept_learner_type": "sae", "sae_variant": "online"}},
+    {"name": "Embedding", "match": {"family": "LGM", "concept_learner_type": "identity"}},
+    {"name": "Ensemble (Haiku)", "match": {"family": "LGM", "concept_learner_type": "ensemble_m", "llm_model": "bedrock/us.anthropic.claude-haiku-5-5"}},
+    {"name": "Ensemble (wine prompt)", "match": {"family": "LGM", "concept_learner_type": "ensemble_m", "prompt_variant": "wine_examples"}},
+    {"name": "Ensemble", "match": {"family": "LGM", "concept_learner_type": "ensemble_m"}},
+    {"name": "Oracle-pool concept", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_random_pool"}},
+    {"name": "Oracle-true concept", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_true"}},
+    {"name": "Oracle-all8 concept", "match": {"family": "LGM", "concept_learner_type": "oracle", "oracle_variant": "oracle_all8"}},
+    {"name": "Simulated concept", "match": {"family": "LGM", "concept_learner_type": "mock"}},
+    {"name": "Informed-shift", "match": {"family": "CTM", "variant": "text-oracle"}},
+    {"name": "Unrelated-shift", "match": {"family": "CTM", "variant": "text-unrelated"}},
+    {"name": "Centroid", "match": {"family": "CTM", "scorer": "cosine_centroid"}},
     {"name": "Oracle", "match": {"family": "CTM", "variant": "embedding-oracle"}},
-    {"name": "Informed-shift CTM", "match": {"family": "CTM", "variant": "text-oracle"}},
-    {"name": "Unrelated-shift CTM", "match": {"family": "CTM", "variant": "text-unrelated"}},
-    {"name": "Centroid CTM", "match": {"family": "CTM", "scorer": "cosine_centroid"}}
+    {"name": "Online MMD", "match": {"family": "MMD"}},
+    {"name": "Online LSDD", "match": {"family": "LSDD"}},
+    {"name": "Online KS share", "match": {"family": "KS_SHARE"}},
+    {"name": "Online cosine distance", "match": {"family": "COSINE"}}
   ]
 }

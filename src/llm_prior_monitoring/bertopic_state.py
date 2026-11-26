@@ -22,6 +22,7 @@ from typing import Dict, List
 
 import numpy as np
 from bertopic import BERTopic
+from sentence_transformers import SentenceTransformer
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import IncrementalPCA
 from bertopic.vectorizers import OnlineCountVectorizer
@@ -70,7 +71,8 @@ class BertopicState:
             hdbscan_model=cluster_model,
             vectorizer_model=vectorizer_model,
             calculate_probabilities=False,
-            embedding_model=self.embedding_model,
+            # CPU, as in the paper's runs; a bare name would auto-select MPS/GPU.
+            embedding_model=SentenceTransformer(self.embedding_model, device="cpu"),
         )
 
 

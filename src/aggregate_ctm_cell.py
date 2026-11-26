@@ -41,6 +41,9 @@ def parse_args() -> argparse.Namespace:
                    help="Path to ctm_config.json for this cell")
     p.add_argument("--k-calib", type=int, default=None,
                    help="Calibration pool size (nested axis for sweeps)")
+    p.add_argument("--embed-model", default=None,
+                   help="Embedding sensitivity axis; no CTM config records it, so the "
+                        "sconscript passes it. The column is written only when given.")
     p.add_argument("--out-csv", type=Path, required=True)
     p.add_argument("--log", type=Path, required=True)
     return p.parse_args()
@@ -158,6 +161,8 @@ def main() -> None:
         "direction_path": config.direction_path,
         "standardize": config.standardize,
     }
+    if args.embed_model is not None:
+        config_cols["embed_model"] = args.embed_model
     for row in rows:
         row.update(config_cols)
 

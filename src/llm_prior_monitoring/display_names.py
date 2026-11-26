@@ -52,6 +52,7 @@ def name_series_short(df, identity_cols: list[str]):
     field the match rules ignore (search_all_sizes, say) may not vary under one name, or
     two arms would draw as a single legend entry and silently merge curves.
     """
+    identity_cols = [col for col in identity_cols if col in df.columns]
     names = df.apply(match_series_name, axis=1)
     unnamed = df.loc[names.isna(), identity_cols].drop_duplicates()
     assert unnamed.empty, (
