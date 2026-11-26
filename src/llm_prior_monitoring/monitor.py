@@ -19,10 +19,7 @@ from .sequential_concept_learner import SequentialConceptLearner
 
 import litellm
 litellm.drop_params = True
-# litellm's model list marks Claude Haiku 5.5 on Bedrock as lacking native structured
-# output, so it would fall back to a forced tool call, which this model fills in
-# unreliably (concepts written inside the reasoning field). Bedrock's native structured
-# output parses reliably for it.
+
 litellm.model_cost["us.anthropic.claude-haiku-5-5"]["supports_native_structured_output"] = True
 
 log = logging.getLogger(__name__)

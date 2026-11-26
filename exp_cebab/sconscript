@@ -58,9 +58,7 @@ DEFAULT_PROMPT_FILES = {
     "bertopic_init": "proposer_bertopic_init.txt",
     "annotator": "annotator.txt",
 }
-# Prompt sensitivity: each variant overrides some roles. "wine_examples" swaps the decor
-# example, close to the ambiance shift, for a wine-price example in the three prompts
-# that have one; the annotator prompt has none.
+# Prompt sensitivity
 PROMPT_VARIANTS = {
     "default": {},
     "wine_examples": {
@@ -102,7 +100,7 @@ SIDE_FRACS   = [0.2, 0.55, 0.25]
 EMBED_MODEL     = EMBED_CONFIGS[DEFAULT_EMBED]["model"]
 EMBED_LOCAL_ONLY = True
 
-N_NULL_SEEDS      = 100  # > 0: the sliding-window baselines calibrate their thresholds on the nulls
+N_NULL_SEEDS      = 100
 N_SEEDS           = 100
 SEED_CAPS = {}
 
@@ -225,14 +223,12 @@ PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
                  "oracle_variant", "sae_variant", "variant", "search_all_sizes",
                  "llm_model", "prompt_variant", "embed_model"]
 # plot_cebab --filter specs; a NaN cell passes, i.e. the axis does not apply to that arm.
-# The paper figure pins every sensitivity axis at its default.
 PAPER_FILTERS = [
     f"embed_model={DEFAULT_EMBED}",
     f"llm_model={DEFAULT_LLM}",
     "prompt_variant=default",
 ]
-# Sensitivity figures, without sliding windows: output subdir -> whether to load the CTM
-# rows, and the filters. Each varies one axis and pins the other two at the paper setting.
+# Sensitivity figures
 SENSITIVITY_PLOTS = {
     "sensitivity_llm": {
         "with_ctm": False,
