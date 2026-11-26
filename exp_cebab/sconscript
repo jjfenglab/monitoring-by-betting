@@ -28,20 +28,66 @@ def _run_cmd(cmd_parts, n_cpus=2, mem="5G", use_slurm=USE_SLURM):
 
 TORCH_MEM = "8G"
 
+# Embedding sensitivity: DEFAULT_EMBED (the paper's MiniLM) drives every arm; the others
+# are swept only for the identity arm and the CTM monitors, under `emb_<key>/`.
+DEFAULT_EMBED = "minilm"
+EMBED_CONFIGS = {
+    "minilm": {
+        "model": "sentence-transformers/all-MiniLM-L6-v2",
+        "population_emb": "data/population_embeddings.npz",
+    },
+    "bge_base": {
+        "model": "BAAI/bge-base-en-v1.5",
+        "population_emb": "data/population_embeddings_bge_base.npz",
+    },
+}
+SENSITIVITY_EMBEDS = [key for key in EMBED_CONFIGS if key != DEFAULT_EMBED]
+
+
+def _embed_label(key):
+    """Path label for an embedding axis value: empty for the default."""
+    return "" if key == DEFAULT_EMBED else f"emb_{key}"
+
+
 OUTDIR = "_output"
 
-PROMPT_KEYPHRASE_FILE         = "exp_cebab/prompts/keyphrases.txt"
-PROMPT_BERTOPIC_ITER_FILE     = "exp_cebab/prompts/proposer_bertopic_iter.txt"
-PROMPT_BERTOPIC_INIT_FILE     = "exp_cebab/prompts/proposer_bertopic_init.txt"
-PROMPT_ANNOTATOR_FILE         = "exp_cebab/prompts/annotator.txt"
-PROMPT_SOURCES = ["prompts/keyphrases.txt",
-                  "prompts/proposer_bertopic_iter.txt", "prompts/proposer_bertopic_init.txt",
-                  "prompts/annotator.txt"]
-LLM_MODELS = ["azure/gpt-4.1-mini-2025-04-14"]
+# Prompt file per role, in exp_cebab/prompts/. The order fixes run_monitor's prompt sources.
+DEFAULT_PROMPT_FILES = {
+    "keyphrase": "keyphrases.txt",
+    "bertopic_iter": "proposer_bertopic_iter.txt",
+    "bertopic_init": "proposer_bertopic_init.txt",
+    "annotator": "annotator.txt",
+}
+# Prompt sensitivity: each variant overrides some roles. "wine_examples" swaps the decor
+# example, close to the ambiance shift, for a wine-price example in the three prompts
+# that have one; the annotator prompt has none.
+PROMPT_VARIANTS = {
+    "default": {},
+    "wine_examples": {
+        "keyphrase": "keyphrases_wine_examples.txt",
+        "bertopic_init": "proposer_bertopic_init_wine_examples.txt",
+        "bertopic_iter": "proposer_bertopic_iter_wine_examples.txt",
+    },
+}
+
+
+def prompt_files(variant):
+    """Role -> sconscript-relative prompt path for a variant (defaults + its overrides)."""
+    return {
+        role: f"prompts/{name}"
+        for role, name in {**DEFAULT_PROMPT_FILES, **PROMPT_VARIANTS[variant]}.items()
+    }
+
+
+LLM_MODELS = [
+    "azure/gpt-4.1-mini-2025-04-14",
+    "bedrock/us.anthropic.claude-haiku-5-5",
+]
+DEFAULT_LLM = LLM_MODELS[0]
 LLM_BATCH_SIZE = 50
 
 POPULATION_CSV  = "data/population.csv"
-POPULATION_EMB  = "data/population_embeddings.npz"
+POPULATION_EMB  = EMBED_CONFIGS[DEFAULT_EMBED]["population_emb"]
 
 BETA_DICT = {
     "ambiance_mentioned": {
@@ -53,11 +99,11 @@ BETA_DICT = {
 }
 
 SIDE_FRACS   = [0.2, 0.55, 0.25]
-EMBED_MODEL     = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_MODEL     = EMBED_CONFIGS[DEFAULT_EMBED]["model"]
 EMBED_LOCAL_ONLY = True
 
-N_NULL_SEEDS      = 0
-N_SEEDS           = 2
+N_NULL_SEEDS      = 100  # > 0: the sliding-window baselines calibrate their thresholds on the nulls
+N_SEEDS           = 100
 SEED_CAPS = {}
 
 SHIFT_SEED_OFFSET = 10000
@@ -163,10 +209,60 @@ def _ctm_direction_files(shift_aspect):
     }
 CTM_POOL_VARIANT = "embedding-oracle"
 
+# Sliding-window baselines: MMD / LSDD after alibi-detect's online detectors, KS drifted share
+# / cosine distance after Evidently. Reference = the stream's K_CALIB controls; statistic
+# over the last W stream points, NaN through burn-in.
+SLIDING_WINDOW_METHODS = ["mmd", "lsdd", "ks_share", "cosine"]
+SLIDING_WINDOW_SIZES   = [10, 20, 30]
+KS_ALPHA             = 0.05           # ks_share: a dimension drifts when its KS p-value is <= this
+LSDD_N_CENTERS       = K_CALIB // 2   # first controls are kernel centres, the rest the reference
+LSDD_LAMBDA_RD_MAX   = 0.2            # alibi default: largest lambda with mean RD below this
+LSDD_N_LAMBDA_SPLITS = 200            # reference/window splits of controls + burn-in for lambda
+
 THRESHOLD_MAX_PLOT = THRESHOLD_MAX
 THRESHOLD_MAX_PLOT_NULL = MAX_STEPS_NULL - N_BURN_IN
 PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
-                 "oracle_variant", "sae_variant", "variant", "search_all_sizes"]
+                 "oracle_variant", "sae_variant", "variant", "search_all_sizes",
+                 "llm_model", "prompt_variant", "embed_model"]
+# plot_cebab --filter specs; a NaN cell passes, i.e. the axis does not apply to that arm.
+# The paper figure pins every sensitivity axis at its default.
+PAPER_FILTERS = [
+    f"embed_model={DEFAULT_EMBED}",
+    f"llm_model={DEFAULT_LLM}",
+    "prompt_variant=default",
+]
+# Sensitivity figures, without sliding windows: output subdir -> whether to load the CTM
+# rows, and the filters. Each varies one axis and pins the other two at the paper setting.
+SENSITIVITY_PLOTS = {
+    "sensitivity_llm": {
+        "with_ctm": False,
+        "filters": [
+            "concept_learner_type=bertopic_llm,ensemble_m",
+            "prompt_variant=default",
+            f"embed_model={DEFAULT_EMBED}",
+        ],
+    },
+    "sensitivity_prompt": {
+        "with_ctm": False,
+        "filters": [
+            "concept_learner_type=bertopic_llm,ensemble_m",
+            f"llm_model={DEFAULT_LLM}",
+            f"embed_model={DEFAULT_EMBED}",
+        ],
+    },
+    **{
+        f"sensitivity_embedding/{key}": {
+            "with_ctm": True,
+            "filters": [
+                "concept_learner_type=identity,ensemble_m",
+                f"embed_model={key}",
+                f"llm_model={DEFAULT_LLM}",
+                "prompt_variant=default",
+            ],
+        }
+        for key in EMBED_CONFIGS
+    },
+}
 
 
 def _mirror_outdir(outdir, subdir):
@@ -201,6 +297,30 @@ def _monitor_seed(run_seed_key):
 
 nest = SConsWrap(Nest(), OUTDIR, alias_environment=localenv)
 
+
+@nest.add_target_with_env(localenv)
+def embed_population(env, outdir, c):
+    """Embed the population.csv rows, in order, with each sensitivity model."""
+    nodes = {}
+    for key in SENSITIVITY_EMBEDS:
+        population_emb = EMBED_CONFIGS[key]["population_emb"]
+        cmd = [
+            "python", "src/embed_cebab_population.py",
+            "--population-csv",     "${SOURCES[0]}",
+            "--embed-model",        EMBED_CONFIGS[key]["model"],
+            "--out-embeddings-npz", "${TARGETS[0]}",
+            "--log",                "${TARGETS[1]}",
+        ]
+        if EMBED_LOCAL_ONLY:
+            cmd.append("--local-files-only")
+        nodes[key] = env.Command(
+            [population_emb, population_emb.replace(".npz", ".log")],
+            [POPULATION_CSV],
+            " ".join(map(str, cmd)),
+        )
+    return nodes
+
+
 if not (File(POPULATION_CSV).exists() and File(POPULATION_EMB).exists()):
     @nest.add_target_with_env(localenv)
     def build_population(env, outdir, c):
@@ -221,10 +341,13 @@ nest.add("shift_aspect",
 
 nest.add_aggregate("cell_summaries", list)
 nest.add_aggregate("ctm_cell_summaries", list)
+nest.add_aggregate("sliding_window_cell_summaries", list)
 
-@nest.add_target_with_env(localenv)
-def assemble_pools(env, outdir, c):
-    sources = [POPULATION_CSV, POPULATION_EMB]
+
+def _assemble_pools_command(env, outdir, c, population_emb):
+    """Pools from the population; row selection ignores the embeddings, so every
+    population npz yields the same pools and row order."""
+    sources = [POPULATION_CSV, population_emb]
     targets = [
         path_join(outdir, "p0_pool.csv"),
         path_join(outdir, "p1_pool.csv"),
@@ -256,6 +379,11 @@ def assemble_pools(env, outdir, c):
         "--log",                 "${TARGETS[7]}",
     ]
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def assemble_pools(env, outdir, c):
+    return _assemble_pools_command(env, outdir, c, POPULATION_EMB)
 
 
 @nest.add_target_with_env(localenv)
@@ -304,6 +432,22 @@ if any(t.startswith("sae") for t in CONCEPT_LEARNER_TYPES):
         return env.Command(targets, sources, _run_cmd(cmd, use_slurm=True))
 
 
+# Embedding-dependent artifacts, once per model. Streams only index rows (emb_idx), so they
+# are shared across models; embed_artifacts carries each model's artifacts past the pop.
+nest.add_aggregate("embed_artifacts", dict)
+nest.add("embed_model", list(EMBED_CONFIGS), label_func=_embed_label)
+
+
+@nest.add_target_with_env(localenv)
+def embed_pools(env, outdir, c):
+    """This model's pool artifacts: the default reuses assemble_pools, others re-slice."""
+    if c["embed_model"] == DEFAULT_EMBED:
+        return c["assemble_pools"]
+    return _assemble_pools_command(
+        env, outdir, c, EMBED_CONFIGS[c["embed_model"]]["population_emb"]
+    )
+
+
 @nest.add_target_with_env(localenv)
 def write_text_direction(env, outdir, c):
     nodes = {}
@@ -315,7 +459,7 @@ def write_text_direction(env, outdir, c):
         cmd = [
             "python", "src/write_text_direction.py",
             "--descriptions-json", "${SOURCES[0]}",
-            "--embed-model",       EMBED_MODEL,
+            "--embed-model",       EMBED_CONFIGS[c["embed_model"]]["model"],
             "--out",               "${TARGETS[0]}",
             "--log",               "${TARGETS[1]}",
         ]
@@ -328,8 +472,8 @@ def write_text_direction(env, outdir, c):
 @nest.add_target_with_env(localenv)
 def write_pool_direction(env, outdir, c):
     sources = [
-        c["assemble_pools"][2],
-        c["assemble_pools"][3]
+        c["embed_pools"][2],
+        c["embed_pools"][3]
     ]
     targets = [
         path_join(outdir, f"directions_{CTM_POOL_VARIANT}.npz"),
@@ -344,6 +488,19 @@ def write_pool_direction(env, outdir, c):
         "--log",             "${TARGETS[1]}",
     ]
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def collect_embed_artifacts(env, outdir, c):
+    """Expose this model's artifacts to the identity and CTM axes after the pop."""
+    c["embed_artifacts"][c["embed_model"]] = {
+        "pool_emb": c["embed_pools"][2],
+        "text_dirs": c["write_text_direction"],
+        "pool_dir": c["write_pool_direction"][0],
+    }
+
+
+nest.pop("embed_model")
 
 
 nest.add_aggregate("seed_dict", dict)
@@ -444,6 +601,19 @@ nest.add(
     lambda c: LLM_MODELS if c["concept_learner_type"] in LLM_LEARNER_TYPES else ["none"],
     label_func=lambda c: f"llm_{c.replace('/', '_').replace('.', '_')}")
 
+# Prompt variants run with the paper's LLM only; other LLMs get the default prompt.
+nest.add(
+    "prompt_variant",
+    lambda c: (list(PROMPT_VARIANTS)
+               if c["concept_learner_type"] in LLM_LEARNER_TYPES and c["llm_model"] == DEFAULT_LLM
+               else ["default"]),
+    label_func=lambda c: "" if c == "default" else f"prompt_{c}")
+
+nest.add(
+    "embed_model",
+    lambda c: list(EMBED_CONFIGS) if c["concept_learner_type"] == "identity" else [DEFAULT_EMBED],
+    label_func=_embed_label)
+
 @nest.add_target_with_env(localenv)
 def create_scl_config(env, outdir, c):
     targets = [path_join(outdir, "scl_config.json")]
@@ -503,16 +673,20 @@ def create_scl_config(env, outdir, c):
                 "--oracle-informative-cols", *_oracle_concept_cols("oracle_true", c["shift_aspect"]),
             ]
     elif c["concept_learner_type"] == "bertopic_llm":
+        # The config's prompt paths are read at runtime relative to the repo root.
+        prompts = {role: path_join("exp_cebab", path)
+                   for role, path in prompt_files(c["prompt_variant"]).items()}
         cmd += [
             "--llm-keyphrase-model", c["llm_model"],
-            "--prompt-keyphrase-file", PROMPT_KEYPHRASE_FILE,
+            "--prompt-keyphrase-file", prompts["keyphrase"],
             "--keyphrase-batch-size", LLM_BATCH_SIZE,
             "--llm-proposer-model", c["llm_model"],
-            "--prompt-proposer-iter-file", PROMPT_BERTOPIC_ITER_FILE,
-            "--prompt-proposer-init-file", PROMPT_BERTOPIC_INIT_FILE,
+            "--prompt-proposer-iter-file", prompts["bertopic_iter"],
+            "--prompt-proposer-init-file", prompts["bertopic_init"],
             "--n-bertopic-topics", N_BERTOPIC_TOPICS,
+            "--embedding-model-path", EMBED_MODEL,
             "--llm-annotator-model", c["llm_model"],
-            "--prompt-annotator-file", PROMPT_ANNOTATOR_FILE,
+            "--prompt-annotator-file", prompts["annotator"],
             "--annotator-batch-size", LLM_BATCH_SIZE,
             "--single-concept-mode" if c["single_concept"] else "",
         ]
@@ -524,7 +698,7 @@ nest.add("run_seed", _capped_run_seeds)
 @nest.add_target_with_env(localenv)
 def run_monitor(env, outdir, c):
     sources = [
-        c["assemble_pools"][2],
+        c["embed_artifacts"][c["embed_model"]]["pool_emb"],
         c["seed_dict"][c["run_seed"]],
         c["create_scl_config"][0],
     ]
@@ -563,15 +737,17 @@ def run_monitor(env, outdir, c):
 
     stream_cache = path_join(dirname(c["seed_dict"][c["run_seed"]]), "cache.db")
     if c["concept_learner_type"] in LLM_LEARNER_TYPES:
-        sources = sources + PROMPT_SOURCES
+        sources = sources + list(prompt_files(c["prompt_variant"]).values())
         cmd += ["--cache-file", path_join("exp_cebab", stream_cache)]
 
     c["result_pkls"].append(targets[0])
+    # Keyed by sensitivity setting, then run_seed, so each ENSEMBLE_INPUTS pair picks its own.
     if c["run_seed"].startswith("shift_"):
         if c["concept_learner_type"] == "bertopic_llm":
-            c["bertopic_llm_debug_csvs"][c["run_seed"]] = targets[2]
+            setting = (c["llm_model"], c["prompt_variant"])
+            c["bertopic_llm_debug_csvs"].setdefault(setting, {})[c["run_seed"]] = targets[2]
         elif c["concept_learner_type"] == "identity":
-            c["identity_debug_csvs"][c["run_seed"]] = targets[2]
+            c["identity_debug_csvs"].setdefault(c["embed_model"], {})[c["run_seed"]] = targets[2]
     result = env.Command(targets, sources, _run_cmd(cmd, n_cpus=2))
     if c["concept_learner_type"] in LLM_LEARNER_TYPES:
         env.SideEffect(stream_cache, result)
@@ -674,6 +850,10 @@ def cell_summary(env, outdir, c):
     cmd += (["--skip-null"] if skip_null
             else ["--null-res-glob", f'"{null_res_glob}"',
                     "--null-dat-glob", f'"{null_dat_glob}"'])
+    # Sensitivity axes live only in the paths, so stamp them on the rows for plots.
+    cmd += ["--embed-model", c["embed_model"]]
+    if c["concept_learner_type"] in LLM_LEARNER_TYPES:
+        cmd += ["--llm-model", c["llm_model"], "--prompt-variant", c["prompt_variant"]]
     c["cell_summaries"].append(targets[0])
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
 
@@ -681,11 +861,30 @@ def cell_summary(env, outdir, c):
 nest.pop("changepoint_learner")
 
 
+# Ensemble input pairs, one sensitivity axis at a time off the paper setting (key = path
+# label; the paper pair gets none). bertopic_llm always embeds its keyphrases with MiniLM
+# (EMBED_MODEL), so the bge_base pair swaps only the identity input.
+PAPER_SETTING = {"llm_model": DEFAULT_LLM, "prompt_variant": "default", "embed_model": DEFAULT_EMBED}
+ENSEMBLE_INPUTS = {
+    "paper": PAPER_SETTING,
+    "emb_bge_base": {**PAPER_SETTING, "embed_model": "bge_base"},
+    "llm_haiku": {**PAPER_SETTING, "llm_model": "bedrock/us.anthropic.claude-haiku-5-5"},
+    "prompt_wine_examples": {**PAPER_SETTING, "prompt_variant": "wine_examples"},
+}
+
+
+def _ensemble_input_debug_csvs(c):
+    """(bertopic_llm, identity) {run_seed: debug.csv} dicts of this cell's input pair."""
+    pair = ENSEMBLE_INPUTS[c["ensemble_input"]]
+    return (
+        c["bertopic_llm_debug_csvs"].get((pair["llm_model"], pair["prompt_variant"]), {}),
+        c["identity_debug_csvs"].get(pair["embed_model"], {}),
+    )
+
+
 def _ensemble_seeds(c):
-    if "bertopic_llm" in CONCEPT_LEARNER_TYPES:
-        return sorted(set(c["bertopic_llm_debug_csvs"]) & set(c["identity_debug_csvs"]))
-    else:
-        return []
+    bertopic_debugs, identity_debugs = _ensemble_input_debug_csvs(c)
+    return sorted(set(bertopic_debugs) & set(identity_debugs))
 
 
 ENSEMBLE_COMBINE = {
@@ -706,15 +905,16 @@ def create_ensemble_config(env, outdir, c):
     return env.Command(targets, [], _run_cmd(cmd, use_slurm=False))
 
 
+nest.add("ensemble_input", list(ENSEMBLE_INPUTS),
+         label_func=lambda c: "" if c == "paper" else c)
 nest.add_aggregate("ensemble_result_pkls", list)
 nest.add("ensemble_seed", _ensemble_seeds, label_func=lambda c: c)
 
 
 @nest.add_target_with_env(localenv)
 def run_ensemble_monitor(env, outdir, c):
-    bertopic_debug = c["bertopic_llm_debug_csvs"][c["ensemble_seed"]]
-    identity_debug = c["identity_debug_csvs"][c["ensemble_seed"]]
-    sources = [bertopic_debug, identity_debug]
+    bertopic_debugs, identity_debugs = _ensemble_input_debug_csvs(c)
+    sources = [bertopic_debugs[c["ensemble_seed"]], identity_debugs[c["ensemble_seed"]]]
     targets = [
         path_join(outdir, "result.pkl"),
         path_join(outdir, "run.log"),
@@ -744,13 +944,7 @@ def ensemble_cell_summary(env, outdir, c):
     if len(c["ensemble_result_pkls"]) == 0:
         return
     sources = [c["create_ensemble_config"][0]] + c["ensemble_result_pkls"]
-    shift_res_glob = path_join(
-        "exp_cebab", OUTDIR,
-        c["shift_aspect"],
-        c["ensemble"],
-        "shift_*_seed_*",
-        "result.pkl",
-    )
+    shift_res_glob = path_join("exp_cebab", outdir, "shift_*_seed_*", "result.pkl")
     shift_dat_glob = path_join(
         "exp_cebab", OUTDIR,
         c["shift_aspect"],
@@ -780,6 +974,12 @@ def ensemble_cell_summary(env, outdir, c):
         "--out-csv",              "${TARGETS[0]}",
         "--log",                  "${TARGETS[1]}",
     ]
+    pair = ENSEMBLE_INPUTS[c["ensemble_input"]]
+    cmd += [
+        "--llm-model",      pair["llm_model"],
+        "--prompt-variant", pair["prompt_variant"],
+        "--embed-model",    pair["embed_model"],
+    ]
     c["cell_summaries"].append(targets[0])
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
 
@@ -792,6 +992,7 @@ nest.add("ctm_variant",
          lambda c: list(_ctm_direction_files(c["shift_aspect"])) + [CTM_POOL_VARIANT]
          if c["ctm_scorer"] == "guided" else ["none"],
          label_func=lambda c: f"var_{c}")
+nest.add("embed_model", list(EMBED_CONFIGS), label_func=_embed_label)
 
 
 @nest.add_target_with_env(localenv)
@@ -808,10 +1009,11 @@ def create_ctm_config(env, outdir, c):
         "--n-burn-in",    N_BURN_IN,
     ]
     if c["ctm_scorer"] == "guided":
+        artifacts = c["embed_artifacts"][c["embed_model"]]
         if c["ctm_variant"] == CTM_POOL_VARIANT:
-            sources = [c["write_pool_direction"][0]]
+            sources = [artifacts["pool_dir"]]
         else:
-            sources = [c["write_text_direction"][c["ctm_variant"]][0]]
+            sources = [artifacts["text_dirs"][c["ctm_variant"]][0]]
         cmd += ["--direction-path", "${SOURCES[0]}",
                 "--variant",        c["ctm_variant"]]
     return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
@@ -824,7 +1026,7 @@ nest.add("run_seed", lambda c: c["seed_dict"].keys())
 @nest.add_target_with_env(localenv)
 def run_ctm_monitor(env, outdir, c):
     sources = [
-        c["assemble_pools"][2],
+        c["embed_artifacts"][c["embed_model"]]["pool_emb"],
         c["seed_dict"][c["run_seed"]],
         c["create_ctm_config"][0],
     ]
@@ -907,6 +1109,7 @@ def ctm_cell_summary(env, outdir, c):
         "--n-thresholds",    N_THRESHOLDS,
         "--n-bootstrap",     N_BOOTSTRAP,
         "--config-json",     f"${{SOURCES[{n_result_pkls}]}}",
+        "--embed-model",     c["embed_model"],
         "--out-csv",         "${TARGETS[0]}",
         "--log",             "${TARGETS[1]}",
     ]
@@ -934,6 +1137,146 @@ def aggregate_all_ctm(env, outdir, c):
     return env.Command(targets, c["ctm_cell_summaries"], _run_cmd(cmd, use_slurm=False))
 
 
+nest.add("sliding_window_method", SLIDING_WINDOW_METHODS,
+         label_func=lambda c: f"sliding_window_{c}")
+nest.add("window_size", SLIDING_WINDOW_SIZES, label_func=lambda c: f"W_{c}")
+nest.add_aggregate("sliding_window_null_pkls", list)
+nest.add_aggregate("sliding_window_shift_runs", list)  # (result.pkl, stream_metadata.json) pairs
+nest.add("run_seed", lambda c: list(c["seed_dict"]))
+
+
+@nest.add_target_with_env(localenv)
+def run_sliding_window_detector(env, outdir, c):
+    """Sliding-window statistic (MMD^2 / LSDD / KS share / cosine) of one stream vs its controls."""
+    sources = [
+        c["assemble_pools"][2],
+        c["seed_dict"][c["run_seed"]],
+    ]
+    targets = [
+        path_join(outdir, "result.pkl"),
+        path_join(outdir, "run.log"),
+        path_join(outdir, "debug.csv"),
+    ]
+    cmd = [
+        "python", "src/run_sliding_window_detector.py",
+        "--method",          c["sliding_window_method"],
+        "--window-size",     c["window_size"],
+        "--n-burn-in",       N_BURN_IN,
+        "--stream-csv",      "${SOURCES[1]}",
+        "--embeddings-path", "${SOURCES[0]}",
+        "--seed",            _monitor_seed(c["run_seed"]),
+        "--out",             "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+        "--debug-csv",       "${TARGETS[2]}",
+    ]
+    if c["sliding_window_method"] == "lsdd":
+        cmd += [
+            "--n-centers",       LSDD_N_CENTERS,
+            "--lambda-rd-max",   LSDD_LAMBDA_RD_MAX,
+            "--n-lambda-splits", LSDD_N_LAMBDA_SPLITS,
+        ]
+    if c["sliding_window_method"] == "ks_share":
+        cmd += ["--ks-alpha", KS_ALPHA]
+    if c["run_seed"].startswith("null_"):
+        c["sliding_window_null_pkls"].append(targets[0])
+    else:
+        metadata = c["seed_dict"][c["run_seed"]].replace("stream.csv", "stream_metadata.json")
+        c["sliding_window_shift_runs"].append((targets[0], metadata))
+    return env.Command(targets, sources, _run_cmd(cmd))
+
+
+@nest.add_target_with_env(localenv)
+def plot_sliding_window_statistic(env, outdir, c):
+    """The stream's statistic over time, for the first two null and shift streams."""
+    sources = [c["run_sliding_window_detector"][2]]
+    targets = [
+        path_join(outdir, "sliding_window_statistic.png"),
+        path_join(outdir, "plot_sliding_window_statistic.log"),
+    ]
+    if int(c["run_seed"].rsplit("_", 1)[1]) < 2:
+        cmd = [
+            "python", "src/plot_sliding_window_statistic.py",
+            "--debug-csv",   "${SOURCES[0]}",
+            "--method",      c["sliding_window_method"],
+            "--window-size", c["window_size"],
+            "--fig-path",    "${TARGETS[0]}",
+            "--log",         "${TARGETS[1]}",
+        ]
+        return env.Command(targets, sources, _run_cmd(cmd))
+
+
+nest.pop("run_seed")
+
+
+@nest.add_target_with_env(localenv)
+def calibrate_sliding_window_thresholds(env, outdir, c):
+    """One threshold per nominal ARL0 (the SCL sweep's grid), calibrated on the null runs."""
+    null_pkls = c["sliding_window_null_pkls"]
+    assert null_pkls, "sliding-window baselines calibrate on null streams: set N_NULL_SEEDS > 0"
+    targets = [
+        path_join(outdir, "thresholds.csv"),
+        path_join(outdir, "null_arl_curve.csv"),
+        path_join(outdir, "null_lambda_counts.csv"),
+        path_join(outdir, "calibrate.log"),
+    ]
+    cmd = [
+        "python", "src/calibrate_sliding_window_thresholds.py",
+        "--null-res-glob",         f'"{path_join("exp_cebab", outdir, "null_*", "result.pkl")}"',
+        "--n-null-runs",           len(null_pkls),
+        "--n-burn-in",             N_BURN_IN,
+        "--threshold-min",         THRESHOLD_MIN,
+        "--threshold-max",         THRESHOLD_MAX,
+        "--n-thresholds",          N_THRESHOLDS,
+        "--out-thresholds-csv",    "${TARGETS[0]}",
+        "--out-curve-csv",         "${TARGETS[1]}",
+        "--out-lambda-counts-csv", "${TARGETS[2]}",
+        "--log",                   "${TARGETS[3]}",
+    ]
+    return env.Command(targets, null_pkls, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def sliding_window_cell_summary(env, outdir, c):
+    """EDD on the shift runs at the calibrated thresholds; nominal_arl is the ARL0 target."""
+    shift_pkls = [pkl for pkl, _ in c["sliding_window_shift_runs"]]
+    shift_metas = [meta for _, meta in c["sliding_window_shift_runs"]]
+    sources = [c["calibrate_sliding_window_thresholds"][0]] + shift_pkls + shift_metas
+    targets = [
+        path_join(outdir, "summary.csv"),
+        path_join(outdir, "aggregate.log"),
+    ]
+    cmd = [
+        "python", "src/aggregate_sliding_window_cell.py",
+        "--shift-res-glob", f'"{path_join("exp_cebab", outdir, "shift_*_seed_*", "result.pkl")}"',
+        "--n-shift-runs",   len(shift_pkls),
+        "--thresholds-csv", "${SOURCES[0]}",
+        "--label",          c["shift_aspect"],
+        "--n-burn-in",      N_BURN_IN,
+        "--n-bootstrap",    N_BOOTSTRAP,
+        "--k-calib",        K_CALIB,
+        "--out-csv",        "${TARGETS[0]}",
+        "--log",            "${TARGETS[1]}",
+    ]
+    c["sliding_window_cell_summaries"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("window_size")
+nest.pop("sliding_window_method")
+
+
+@nest.add_target_with_env(localenv)
+def aggregate_all_sliding_window(env, outdir, c):
+    cmd = [
+        "python", "src/aggregate_results.py",
+        "--input-csv", "${SOURCES}",
+        "--out-csv",   "${TARGETS[0]}",
+    ]
+    targets = [path_join(outdir, "all_sliding_window_summary.csv")]
+    return env.Command(targets, c["sliding_window_cell_summaries"],
+                       _run_cmd(cmd, use_slurm=False))
+
+
 @nest.add_target_with_env(localenv)
 def aggregate_all(env, outdir, c):
     cmd = [
@@ -947,27 +1290,70 @@ def aggregate_all(env, outdir, c):
 
 @nest.add_target_with_env(localenv)
 def final_plot(env, outdir, c):
-    sources = [c["aggregate_all"][0], c["aggregate_all_ctm"][0]]
-    targets = [
-        path_join(outdir, "arl_edd.png"),
-        path_join(outdir, "calibration_arl.png"),
-        path_join(outdir, "plot.log"),
-    ]
-    cmd = [
-        "python", "src/plot_cebab.py",
-        "--csv",             "${SOURCES[0]}",
-        "--ctm-csv",         "${SOURCES[1]}",
-        "--n-burn-in",       N_BURN_IN,
-        "--out-nominal",     "${TARGETS[0]}",
-        "--out-calibration", "${TARGETS[1]}",
-        "--n-pre",           N_PRE,
-        "--threshold-min",   THRESHOLD_MIN,
-        "--threshold-max",   THRESHOLD_MAX,
-        "--threshold-min-null", THRESHOLD_MIN,
-        "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
-        "--hue-cols",        *PLOT_HUE_COLS,
-        "--title-prefix",    c["shift_aspect"],
-        "--log",             "${TARGETS[2]}",
-        "--baseline", "family=CTM",
-    ]
-    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+    """The paper figure per sliding-window size, at the paper setting."""
+    sources = [c["aggregate_all"][0], c["aggregate_all_ctm"][0],
+               c["aggregate_all_sliding_window"][0]]
+    nodes = []
+    for window_size in SLIDING_WINDOW_SIZES:
+        targets = [
+            path_join(outdir, f"W_{window_size}", "arl_edd.png"),
+            path_join(outdir, f"W_{window_size}", "calibration_arl.png"),
+            path_join(outdir, f"W_{window_size}", "plot.log"),
+        ]
+        cmd = [
+            "python", "src/plot_cebab.py",
+            "--csv",             "${SOURCES[0]}",
+            "--ctm-csv",         "${SOURCES[1]}",
+            "--sliding-window-csv", "${SOURCES[2]}",
+            "--sliding-window-size", window_size,
+            "--n-burn-in",       N_BURN_IN,
+            "--out-nominal",     "${TARGETS[0]}",
+            "--out-calibration", "${TARGETS[1]}",
+            "--n-pre",           N_PRE,
+            "--threshold-min",   THRESHOLD_MIN,
+            "--threshold-max",   THRESHOLD_MAX,
+            "--threshold-min-null", THRESHOLD_MIN,
+            "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
+            "--hue-cols",        *PLOT_HUE_COLS,
+            "--title-prefix",    f'"{c["shift_aspect"]} W={window_size}"',
+            "--log",             "${TARGETS[2]}",
+            "--baseline", "family=CTM,MMD,LSDD,KS_SHARE,COSINE",
+        ]
+        cmd += [arg for spec in PAPER_FILTERS for arg in ("--filter", spec)]
+        nodes.append(env.Command(targets, sources, _run_cmd(cmd, use_slurm=False)))
+    return nodes
+
+
+@nest.add_target_with_env(localenv)
+def sensitivity_plots(env, outdir, c):
+    """One figure per SENSITIVITY_PLOTS entry; no sliding-window baselines."""
+    nodes = []
+    for subdir, plot in SENSITIVITY_PLOTS.items():
+        sources = [c["aggregate_all"][0]]
+        if plot["with_ctm"]:
+            sources.append(c["aggregate_all_ctm"][0])
+        targets = [
+            path_join(outdir, subdir, "arl_edd.png"),
+            path_join(outdir, subdir, "calibration_arl.png"),
+            path_join(outdir, subdir, "plot.log"),
+        ]
+        cmd = [
+            "python", "src/plot_cebab.py",
+            "--csv",             "${SOURCES[0]}",
+            "--n-burn-in",       N_BURN_IN,
+            "--out-nominal",     "${TARGETS[0]}",
+            "--out-calibration", "${TARGETS[1]}",
+            "--n-pre",           N_PRE,
+            "--threshold-min",   THRESHOLD_MIN,
+            "--threshold-max",   THRESHOLD_MAX,
+            "--threshold-min-null", THRESHOLD_MIN,
+            "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
+            "--hue-cols",        *PLOT_HUE_COLS,
+            "--title-prefix",    f'"{c["shift_aspect"]} {subdir}"',
+            "--log",             "${TARGETS[2]}",
+        ]
+        if plot["with_ctm"]:
+            cmd += ["--ctm-csv", "${SOURCES[1]}", "--baseline", "family=CTM"]
+        cmd += [arg for spec in plot["filters"] for arg in ("--filter", spec)]
+        nodes.append(env.Command(targets, sources, _run_cmd(cmd, use_slurm=False)))
+    return nodes
