@@ -52,7 +52,7 @@ LLM_MODELS     = ["azure/gpt-4.1-mini-2025-04-14"]
 LLM_BATCH_SIZE = 100
 EMBED_LOCAL_ONLY = True
 
-N_NULL_SEEDS      = 0
+N_NULL_SEEDS      = 100
 N_SEEDS           = 100
 
 SHIFT_SEED_OFFSET = 10000
@@ -96,6 +96,12 @@ CTM_DIRECTION_FILES = {
 }
 CTM_POOL_VARIANT = "embedding-oracle"
 
+SLIDING_WINDOW_METHODS = ["mmd", "lsdd", "ks_share", "cosine"]
+SLIDING_WINDOW_SIZES   = [30]
+KS_ALPHA               = 0.05
+LSDD_LAMBDA_RD_MAX     = 0.2
+LSDD_N_LAMBDA_SPLITS   = 200
+
 CHANGEPOINT_LEARNER_NAMES = [
     "mean_shift",
 ]
@@ -112,7 +118,7 @@ LLM_N_NEW_CONCEPTS       = 2
 
 LLM_CP_LEARNERS = ("mean_shift",)
 SEED_CAPS = {
-    "bertopic_llm": {"shift": 14, "null": 0},
+    "bertopic_llm": {"shift": 30, "null": 0},
 }
 
 SAE_M = 32
@@ -135,7 +141,7 @@ PLOT_HUE_COLS = ["family", "cp_feature_source", "concept_learner_type",
                  "oracle_variant", "sae_variant", "variant", "search_all_sizes"]
 
 def _seed_class(cap):
-    return "*" if cap is None else f"[0-{cap - 1}]"
+    return "*"
 
 
 def _capped_run_seeds(c):
@@ -166,6 +172,7 @@ nest.add("text_mode", TEXT_MODES, label_func=lambda c: f"text_mode_{c}")
 
 nest.add_aggregate("cell_summaries", list)
 nest.add_aggregate("ctm_cell_summaries", list)
+nest.add_aggregate("sliding_window_cell_summaries", list)
 nest.add_aggregate("t_hat_summaries", list)
 
 nest.add(
@@ -316,7 +323,7 @@ nest.add_aggregate("metadata_list", list)
 nest.add("post_p1_fraction", POST_P1_FRACTIONS, label_func=lambda c: f"post_p1_{c}")
 nest.add(
     "seed",
-    [i for i in range(N_SEEDS) if i != 4],
+    range(N_SEEDS),
     label_func=lambda c: f"seed_{c}")
 
 
@@ -844,6 +851,130 @@ def ensemble_cell_summary(env, outdir, c):
 
 
 nest.pop("ensemble")
+
+
+nest.add("sliding_window_method", SLIDING_WINDOW_METHODS,
+         label_func=lambda c: f"sliding_window_{c}")
+nest.add("window_size", SLIDING_WINDOW_SIZES, label_func=lambda c: f"W_{c}")
+nest.add_aggregate("sliding_window_null_pkls", list)
+nest.add_aggregate("sliding_window_shift_runs", list)
+nest.add("run_seed", lambda c: list(c["seed_dict"]))
+
+
+@nest.add_target_with_env(localenv)
+def run_sliding_window_detector(env, outdir, c):
+    sources = [
+        c["embed_pools"][0],
+        c["seed_dict"][c["run_seed"]],
+    ]
+    targets = [
+        path_join(outdir, "result.pkl"),
+        path_join(outdir, "run.log"),
+        path_join(outdir, "debug.csv"),
+    ]
+    cmd = [
+        "python", "src/run_sliding_window_detector.py",
+        "--method",          c["sliding_window_method"],
+        "--window-size",     c["window_size"],
+        "--n-burn-in",       N_BURN_IN,
+        "--stream-csv",      "${SOURCES[1]}",
+        "--embeddings-path", "${SOURCES[0]}",
+        "--seed",            _monitor_seed(c["run_seed"]),
+        "--out",             "${TARGETS[0]}",
+        "--log",             "${TARGETS[1]}",
+        "--debug-csv",       "${TARGETS[2]}",
+    ]
+    if c["sliding_window_method"] == "lsdd":
+        cmd += [
+            "--n-centers",       c["k_calib"] // 2,
+            "--lambda-rd-max",   LSDD_LAMBDA_RD_MAX,
+            "--n-lambda-splits", LSDD_N_LAMBDA_SPLITS,
+        ]
+    if c["sliding_window_method"] == "ks_share":
+        cmd += ["--ks-alpha", KS_ALPHA]
+    if c["run_seed"].startswith("null_"):
+        c["sliding_window_null_pkls"].append(targets[0])
+    else:
+        metadata = c["seed_dict"][c["run_seed"]].replace("stream.csv", "stream_metadata.json")
+        c["sliding_window_shift_runs"].append((targets[0], metadata))
+    return env.Command(targets, sources, _run_cmd(cmd))
+
+
+@nest.add_target_with_env(localenv)
+def plot_sliding_window_statistic(env, outdir, c):
+    sources = [c["run_sliding_window_detector"][2]]
+    targets = [
+        path_join(outdir, "sliding_window_statistic.png"),
+        path_join(outdir, "plot_sliding_window_statistic.log"),
+    ]
+    if int(c["run_seed"].rsplit("_", 1)[1]) < 2:
+        cmd = [
+            "python", "src/plot_sliding_window_statistic.py",
+            "--debug-csv",   "${SOURCES[0]}",
+            "--method",      c["sliding_window_method"],
+            "--window-size", c["window_size"],
+            "--fig-path",    "${TARGETS[0]}",
+            "--log",         "${TARGETS[1]}",
+        ]
+        return env.Command(targets, sources, _run_cmd(cmd))
+
+
+nest.pop("run_seed")
+
+
+@nest.add_target_with_env(localenv)
+def calibrate_sliding_window_thresholds(env, outdir, c):
+    null_pkls = c["sliding_window_null_pkls"]
+    assert null_pkls, "sliding-window baselines calibrate on null streams: set N_NULL_SEEDS > 0"
+    targets = [
+        path_join(outdir, "thresholds.csv"),
+        path_join(outdir, "null_arl_curve.csv"),
+        path_join(outdir, "null_lambda_counts.csv"),
+        path_join(outdir, "calibrate.log"),
+    ]
+    cmd = [
+        "python", "src/calibrate_sliding_window_thresholds.py",
+        "--null-res-glob",         f'"{path_join("exp_ai_scribe", outdir, "null_*", "result.pkl")}"',
+        "--n-null-runs",           len(null_pkls),
+        "--n-burn-in",             N_BURN_IN,
+        "--threshold-min",         THRESHOLD_MIN,
+        "--threshold-max",         THRESHOLD_MAX,
+        "--n-thresholds",          N_THRESHOLDS,
+        "--out-thresholds-csv",    "${TARGETS[0]}",
+        "--out-curve-csv",         "${TARGETS[1]}",
+        "--out-lambda-counts-csv", "${TARGETS[2]}",
+        "--log",                   "${TARGETS[3]}",
+    ]
+    return env.Command(targets, null_pkls, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def sliding_window_cell_summary(env, outdir, c):
+    shift_pkls = [pkl for pkl, _ in c["sliding_window_shift_runs"]]
+    shift_metas = [meta for _, meta in c["sliding_window_shift_runs"]]
+    sources = [c["calibrate_sliding_window_thresholds"][0]] + shift_pkls + shift_metas
+    targets = [
+        path_join(outdir, "summary.csv"),
+        path_join(outdir, "aggregate.log"),
+    ]
+    cmd = [
+        "python", "src/aggregate_sliding_window_cell.py",
+        "--shift-res-glob", f'"{path_join("exp_ai_scribe", outdir, "shift_*_seed_*", "result.pkl")}"',
+        "--n-shift-runs",   len(shift_pkls),
+        "--thresholds-csv", "${SOURCES[0]}",
+        "--label",          LABEL,
+        "--n-burn-in",      N_BURN_IN,
+        "--n-bootstrap",    N_BOOTSTRAP,
+        "--k-calib",        c["k_calib"],
+        "--out-csv",        "${TARGETS[0]}",
+        "--log",            "${TARGETS[1]}",
+    ]
+    c["sliding_window_cell_summaries"].append(targets[0])
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+nest.pop("window_size")
+nest.pop("sliding_window_method")
 nest.pop("k_calib")
 
 
@@ -851,6 +982,18 @@ nest.pop("k_calib")
 def aggregate_all_ctm(env, outdir, c):
     sources = c["ctm_cell_summaries"]
     targets = [path_join(outdir, "all_ctm_summary.csv")]
+    cmd = [
+        "python", "src/aggregate_results.py",
+        "--input-csv", "${SOURCES}",
+        "--out-csv",   "${TARGETS[0]}",
+    ]
+    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+
+
+@nest.add_target_with_env(localenv)
+def aggregate_all_sliding_window(env, outdir, c):
+    sources = c["sliding_window_cell_summaries"]
+    targets = [path_join(outdir, "all_sliding_window_summary.csv")]
     cmd = [
         "python", "src/aggregate_results.py",
         "--input-csv", "${SOURCES}",
@@ -887,32 +1030,38 @@ def aggregate_t_hat_all(env, outdir, c):
 
 @nest.add_target_with_env(localenv)
 def plot(env, outdir, c):
-    sources = [c["aggregate_all"][0], c["aggregate_all_ctm"][0]]
-    targets = [
-        path_join(outdir, "arl_edd.png"),
-        path_join(outdir, "calibration_arl.png"),
-        path_join(outdir, "plot.log"),
-    ]
-    cmd = [
-        "python", "src/plot_cebab.py",
-        "--csv",     "${SOURCES[0]}",
-        "--ctm-csv", "${SOURCES[1]}",
-        "--n-burn-in", N_BURN_IN,
-        "--out-nominal", "${TARGETS[0]}",
-        "--out-calibration", "${TARGETS[1]}",
-        "--n-pre",   N_PRE,
-        "--threshold-min", THRESHOLD_MIN,
-        "--threshold-max", THRESHOLD_MAX_PLOT,
-        "--threshold-min-null", THRESHOLD_MIN,
-        "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
-        "--log",     "${TARGETS[2]}",
-        "--baseline", "family=CTM",
-        "--hue-cols",        *PLOT_HUE_COLS,
-    ]
-    if PLOT_FACET_ROW:
-        cmd += ["--facet-row", PLOT_FACET_ROW]
-    if PLOT_FACET_COL:
-        cmd += ["--facet-col", PLOT_FACET_COL]
-    return env.Command(targets, sources, _run_cmd(cmd, use_slurm=False))
+    sources = [c["aggregate_all"][0], c["aggregate_all_ctm"][0],
+               c["aggregate_all_sliding_window"][0]]
+    nodes = []
+    for window_size in SLIDING_WINDOW_SIZES:
+        targets = [
+            path_join(outdir, f"W_{window_size}", "arl_edd.png"),
+            path_join(outdir, f"W_{window_size}", "calibration_arl.png"),
+            path_join(outdir, f"W_{window_size}", "plot.log"),
+        ]
+        cmd = [
+            "python", "src/plot_cebab.py",
+            "--csv",     "${SOURCES[0]}",
+            "--ctm-csv", "${SOURCES[1]}",
+            "--sliding-window-csv", "${SOURCES[2]}",
+            "--sliding-window-size", window_size,
+            "--n-burn-in", N_BURN_IN,
+            "--out-nominal", "${TARGETS[0]}",
+            "--out-calibration", "${TARGETS[1]}",
+            "--n-pre",   N_PRE,
+            "--threshold-min", THRESHOLD_MIN,
+            "--threshold-max", THRESHOLD_MAX_PLOT,
+            "--threshold-min-null", THRESHOLD_MIN,
+            "--threshold-max-null", THRESHOLD_MAX_PLOT_NULL,
+            "--log",     "${TARGETS[2]}",
+            "--baseline", "family=CTM,MMD,LSDD,KS_SHARE,COSINE",
+            "--hue-cols",        *PLOT_HUE_COLS,
+        ]
+        if PLOT_FACET_ROW:
+            cmd += ["--facet-row", PLOT_FACET_ROW]
+        if PLOT_FACET_COL:
+            cmd += ["--facet-col", PLOT_FACET_COL]
+        nodes.append(env.Command(targets, sources, _run_cmd(cmd, use_slurm=False)))
+    return nodes
 
 nest.pop("text_mode")
