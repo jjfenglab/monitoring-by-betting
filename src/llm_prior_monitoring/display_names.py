@@ -51,7 +51,12 @@ def name_series_short(df, identity_cols: list[str]):
     `identity_cols` is what makes two rows the same arm -- the caller's hue columns. A
     field the match rules ignore (search_all_sizes, say) may not vary under one name, or
     two arms would draw as a single legend entry and silently merge curves.
+
+    A column missing from `df` is skipped: no row has it, so it cannot tell arms apart.
+    Some figures load only some summaries (the CEBaB LLM and prompt sensitivity figures
+    have no CTM rows, so no CTM `variant` column).
     """
+    identity_cols = [col for col in identity_cols if col in df.columns]
     names = df.apply(match_series_name, axis=1)
     unnamed = df.loc[names.isna(), identity_cols].drop_duplicates()
     assert unnamed.empty, (

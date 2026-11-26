@@ -48,6 +48,8 @@ def main():
     # BERTopic LLM config
     p.add_argument("--n-bertopic-topics", type=int, default=50,
                    help="Number of BERTopic topics (can exceed n-init-concepts for bertopic_llm).")
+    p.add_argument("--embedding-model-path", default="local_all_MiniLM_L6_v2",
+                   help="Sentence-transformers model name or path BERTopic embeds keyphrases with.")
     p.add_argument("--num-top-topics", type=int, default=10,
                    help="Number of top shifted topics to show in LLM prompt for bertopic_llm.")
     # Annotator
@@ -125,6 +127,7 @@ def main():
             prompt_proposer_iter_file=args.prompt_proposer_iter_file,
             prompt_proposer_init_file=args.prompt_proposer_init_file,
             n_bertopic_topics=args.n_bertopic_topics,
+            embedding_model_path=args.embedding_model_path,
             llm_keyphrase=LLMConfig(
                 llm_model=args.llm_keyphrase_model,
                 max_new_tokens=args.llm_keyphrase_max_new_tokens,

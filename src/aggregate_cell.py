@@ -43,6 +43,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cp-feature-source", required=True)
     p.add_argument("--k-calib", type=int, default=None,
                    help="Calibration pool size (nested axis for sweeps)")
+    # Sensitivity axes: no config records them, so the sconscript passes each cell's values.
+    # A column is written only when its flag is given.
+    p.add_argument("--llm-model", default=None)
+    p.add_argument("--prompt-variant", default=None)
+    p.add_argument("--embed-model", default=None)
     p.add_argument("--out-csv", type=Path, required=True)
     p.add_argument("--log", type=Path, required=True)
     return p.parse_args()
@@ -188,6 +193,12 @@ def main() -> None:
             else float("nan")
         ),
     }
+    sensitivity_cols = {
+        "llm_model": args.llm_model,
+        "prompt_variant": args.prompt_variant,
+        "embed_model": args.embed_model,
+    }
+    config_cols.update({col: v for col, v in sensitivity_cols.items() if v is not None})
     for row in rows:
         row.update(config_cols)
 
